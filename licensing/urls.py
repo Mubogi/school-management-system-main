@@ -12,6 +12,11 @@ urlpatterns = [
     path('sessions/', views.session_management, name='session_management'),
     path('sessions/force-logout/', views.force_logout_session, name='force_logout_session'),
     
+    # Feature activation
+    path('activate-feature/', views.feature_activation_view, name='activate_feature'),
+    path('generate-key/', views.generate_feature_key_view, name='generate_key'),
+    path('api/check-feature/', views.check_feature_status_api, name='api_check_feature'),
+    
     # API endpoints
     path('api/check/', views.api_check_license, name='api_check'),
     path('api/validate/', views.api_validate_key, name='api_validate'),

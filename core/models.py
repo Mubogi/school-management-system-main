@@ -144,6 +144,13 @@ class StudentIDSequence(models.Model):
 
 class Student(models.Model):
     GENDER_CHOICES = [('M', 'Male'), ('F', 'Female'), ('O', 'Other')]
+    RETURN_STATUS_CHOICES = [
+        ('PENDING', 'Pending Return'),
+        ('ACTIVE', 'Active'),
+        ('NOT_RETURNED', 'Not Returned'),
+        ('TRANSFERRED', 'Transferred'),
+        ('LEFT', 'Left School'),
+    ]
 
     school = models.ForeignKey(SchoolConfiguration, on_delete=models.CASCADE)
     student_id = models.CharField(max_length=30, unique=True, db_index=True)
@@ -159,6 +166,30 @@ class Student(models.Model):
     enrollment_date = models.DateField(default=timezone.now)
     passport_photo = models.ImageField(upload_to='student_photos/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    
+    # Termly return tracking
+    is_term_active = models.BooleanField(
+        default=True,
+        help_text='Whether student has returned for the current term'
+    )
+    term_return_status = models.CharField(
+        max_length=20,
+        choices=RETURN_STATUS_CHOICES,
+        default='ACTIVE',
+        help_text='Student return status for the current term'
+    )
+    last_term_checked = models.CharField(max_length=20, null=True, blank=True)
+    
+    # ID Card tracking
+    id_printed = models.BooleanField(default=False, help_text='Whether ID card has been printed')
+    id_printed_date = models.DateTimeField(null=True, blank=True)
+    id_printed_by = models.ForeignKey(
+        'UserProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='id_cards_printed'
+    )
 
     class Meta:
         ordering = ['student_id', 'last_name']

@@ -2702,3 +2702,154 @@ def qr_code_image(request):
     response = HttpResponse(buffer.getvalue(), content_type='image/png')
     response['Content-Disposition'] = f'attachment; filename="school_connect_qr.png"'
     return response
+
+
+# ============================================================================
+# PARENT KIOSK PORTAL (PUBLIC)
+# ============================================================================
+
+def parent_kiosk_view(request):
+    """
+    Public kiosk portal for parents to view student information.
+    Accessed by scanning a QR code displayed at school.
+    """
+    # Check if kiosk feature is enabled
+    from licensing.activation import _get_enabled_features
+    enabled_features = _get_enabled_features()
+    
+    if 'PARENT_KIOSK' not in enabled_features:
+        return render(request, 'core/kiosk/kiosk_disabled.html')
+    
+    # Check for existing session
+    kiosk_session = request.session.get('kiosk_student_id')
+    
+    if kiosk_session:
+        # Load student info
+        try:
+            student = Student.objects.get(student_id=kiosk_session)
+            school = student.school
+            
+            # Get fee balance
+            fee_structures = FeeStructure.objects.filter(
+                school=school,
+                target_class=student.current_class
+            )
+            total_fees = sum(f.amount for f in fee_structures)
+            
+            payments = FeePaymentLedger.objects.filter(
+                student=student,
+                payment_status='CONFIRMED'
+            )
+            total_paid = sum(p.amount_paid for p in payments)
+            balance = total_fees - total_paid
+            
+            # Get latest report info
+            from core.models import StudentTermRecord
+            latest_record = StudentTermRecord.objects.filter(
+                student=student
+            ).order_by('-academic_year', '-term').first()
+            
+            # Get school notices
+            from core.models import SchoolNotice
+            notices = SchoolNotice.objects.filter(
+                school=school,
+                is_active=True
+            ).order_by('-created_at')[:3]
+            
+            context = {
+                'student': student,
+                'school': school,
+                'fee_balance': max(balance, 0),
+                'total_fees': total_fees,
+                'total_paid': total_paid,
+                'latest_record': latest_record,
+                'notices': notices,
+                'is_kiosk': True,
+            }
+            
+            return render(request, 'core/kiosk/parent_dashboard.html', context)
+            
+        except Student.DoesNotExist:
+            if 'kiosk_student_id' in request.session:
+                del request.session['kiosk_student_id']
+    
+    # Show login form
+    context = {
+        'is_kiosk': True,
+    }
+    return render(request, 'core/kiosk/parent_login.html', context)
+
+
+def parent_kiosk_login(request):
+    """Handle parent kiosk login."""
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id', '').strip()
+        parent_phone = request.POST.get('parent_phone', '').strip()
+        
+        if not student_id or not parent_phone:
+            messages.error(request, 'Please enter both Student ID and Parent Phone.')
+            return redirect('core:parent_kiosk')
+        
+        try:
+            # Match last 9 digits of phone number
+            phone_match = parent_phone[-9:] if len(parent_phone) >= 9 else parent_phone
+            student = Student.objects.get(
+                student_id__iexact=student_id,
+                guardian_phone__icontains=phone_match
+            )
+            
+            # Store in session
+            request.session['kiosk_student_id'] = student.student_id
+            request.session['kiosk_access'] = True
+            
+            # Log access
+            from licensing.models import AuditLog
+            AuditLog.log(
+                action='KIOSK_ACCESS',
+                target_type='Student',
+                target_id=student.student_id,
+                target_name=f"{student.first_name} {student.last_name}",
+                description="Parent kiosk access",
+                request=request,
+                school=student.school,
+            )
+            
+            messages.success(request, f'Welcome! Viewing {student.first_name}\'s information.')
+            return redirect('core:parent_kiosk')
+            
+        except Student.DoesNotExist:
+            messages.error(request, 'Invalid Student ID or Parent Phone number.')
+            return redirect('core:parent_kiosk')
+    
+    return redirect('core:parent_kiosk')
+
+
+def parent_kiosk_logout(request):
+    """Log out from kiosk."""
+    if 'kiosk_student_id' in request.session:
+        del request.session['kiosk_student_id']
+    if 'kiosk_access' in request.session:
+        del request.session['kiosk_access']
+    messages.success(request, 'Logged out successfully.')
+    return redirect('core:parent_kiosk')
+
+
+def api_get_parent_student(request):
+    """API to check if student exists (for autocomplete)."""
+    from django.http import JsonResponse
+    
+    student_id = request.GET.get('student_id', '').strip()
+    
+    if len(student_id) < 2:
+        return JsonResponse({'error': 'Too short'}, status=400)
+    
+    students = Student.objects.filter(
+        student_id__icontains=student_id
+    )[:5]
+    
+    results = [
+        {'student_id': s.student_id, 'name': f"{s.first_name} {s.last_name}"}
+        for s in students
+    ]
+    
+    return JsonResponse({'results': results})

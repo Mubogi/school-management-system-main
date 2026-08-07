@@ -2,10 +2,14 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, View
 from django.utils import timezone
 from django.http import Http404
+
+from licensing.decorators import feature_required
 
 from .models import (
     Student, SchoolClass, ClassTeacherAssignment, StudentTermRecord,
@@ -23,8 +27,10 @@ from .report_services import (
 )
 from .report_utils import normalize_report_type, REPORT_MID_TERM
 from .views import (
-    RoleRequiredMixin, get_profile, LoginRequiredMixin, get_user_school,
+    RoleRequiredMixin, get_profile, get_user_school,
 )
+
+from licensing.models import AuditLog
 
 
 class HeadTeacherPublishReportsView(RoleRequiredMixin, TemplateView):
@@ -475,3 +481,262 @@ class BulkStudentPromotionView(RoleRequiredMixin, TemplateView):
             messages.success(request, f'{graduated_count} student(s) marked as graduated.')
         
         return redirect('core:bulk_promotion')
+
+
+# ============================================================================
+# TERMLY RETURN CHECKER
+# ============================================================================
+
+class TermlyReturnCheckerView(LoginRequiredMixin, TemplateView):
+    """
+    Class Teacher/Director of Studies view for tracking student returns each term.
+    """
+    template_name = 'core/dos/termly_return_checker.html'
+    
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        school = get_user_school(self.request.user)
+        
+        if not school:
+            return ctx
+        
+        ctx['school'] = school
+        
+        # Get current term info
+        current_term = school.active_term
+        current_year = school.active_academic_year
+        term_key = f"{current_term}_{current_year}"
+        
+        # Get students grouped by class
+        students = Student.objects.filter(
+            school=school,
+            is_active=True
+        ).order_by('current_class', 'last_name')
+        
+        students_by_class = {}
+        for student in students:
+            class_name = student.current_class or 'Unassigned'
+            if class_name not in students_by_class:
+                students_by_class[class_name] = []
+            
+            # Check if student needs term update
+            needs_update = (
+                student.last_term_checked != term_key or
+                student.term_return_status == 'PENDING'
+            )
+            
+            students_by_class[class_name].append({
+                'student': student,
+                'needs_update': needs_update,
+                'current_status': student.term_return_status,
+            })
+        
+        ctx['students_by_class'] = students_by_class
+        ctx['current_term'] = current_term
+        ctx['current_year'] = current_year
+        ctx['term_key'] = term_key
+        ctx['total_students'] = students.count()
+        
+        # Summary stats
+        pending = students.filter(term_return_status='PENDING', last_term_checked=term_key).count()
+        active = students.filter(term_return_status='ACTIVE', last_term_checked=term_key).count()
+        not_returned = students.filter(term_return_status='NOT_RETURNED', last_term_checked=term_key).count()
+        
+        ctx['stats'] = {
+            'pending': pending,
+            'active': active,
+            'not_returned': not_returned,
+        }
+        
+        return ctx
+    
+    def post(self, request, *args, **kwargs):
+        school = get_user_school(request.user)
+        if not school:
+            messages.error(request, 'No school associated with your account.')
+            return redirect('core:termly_return_checker')
+        
+        action = request.POST.get('action')
+        current_term = school.active_term
+        current_year = school.active_academic_year
+        term_key = f"{current_term}_{current_year}"
+        
+        if action == 'mark_returning':
+            # Mark students as active
+            student_ids = request.POST.getlist('student_ids')
+            for sid in student_ids:
+                try:
+                    student = Student.objects.get(id=sid, school=school)
+                    student.term_return_status = 'ACTIVE'
+                    student.is_term_active = True
+                    student.last_term_checked = term_key
+                    student.save()
+                    
+                    AuditLog.log(
+                        action='STUDENT_RETURN_CHECK',
+                        user=request.user,
+                        target_type='Student',
+                        target_id=student.student_id,
+                        target_name=f"{student.first_name} {student.last_name}",
+                        description=f"Marked as returned for {current_term}/{current_year}",
+                        request=request,
+                        school=school,
+                    )
+                except Student.DoesNotExist:
+                    continue
+            
+            messages.success(request, f'{len(student_ids)} student(s) marked as returned.')
+        
+        elif action == 'mark_not_returning':
+            student_ids = request.POST.getlist('student_ids')
+            for sid in student_ids:
+                try:
+                    student = Student.objects.get(id=sid, school=school)
+                    student.term_return_status = 'NOT_RETURNED'
+                    student.is_term_active = False
+                    student.last_term_checked = term_key
+                    student.save()
+                    
+                    AuditLog.log(
+                        action='STUDENT_NOT_RETURN',
+                        user=request.user,
+                        target_type='Student',
+                        target_id=student.student_id,
+                        target_name=f"{student.first_name} {student.last_name}",
+                        description=f"Marked as not returned for {current_term}/{current_year}",
+                        request=request,
+                        school=school,
+                    )
+                except Student.DoesNotExist:
+                    continue
+            
+            messages.warning(request, f'{len(student_ids)} student(s) marked as not returned.')
+        
+        elif action == 'mark_all_returning':
+            class_name = request.POST.get('class_name')
+            students = Student.objects.filter(school=school, current_class=class_name, is_active=True)
+            count = 0
+            for student in students:
+                student.term_return_status = 'ACTIVE'
+                student.is_term_active = True
+                student.last_term_checked = term_key
+                student.save()
+                count += 1
+            
+            messages.success(request, f'All {count} students in {class_name} marked as returned.')
+        
+        return redirect('core:termly_return_checker')
+
+
+# ============================================================================
+# A4 BATCH ID CARD GENERATOR
+# ============================================================================
+
+@login_required
+@feature_required('ID_GENERATOR')
+def batch_id_card_generator(request):
+    """Generate A4 batch ID cards for students."""
+    school = get_user_school(request.user)
+    if not school:
+        return redirect('core:dashboard')
+    
+    context = {
+        'school': school,
+    }
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'generate_preview':
+            # Get selected students
+            student_ids = request.POST.getlist('student_ids')
+            include_printed = request.POST.get('include_printed') == 'on'
+            
+            students_qs = Student.objects.filter(
+                id__in=student_ids,
+                school=school,
+                passport_photo__isnull=False
+            ).exclude(passport_photo='')
+            
+            if not include_printed:
+                students_qs = students_qs.filter(id_printed=False)
+            
+            students = list(students_qs[:40])  # Max 40 per batch (8x5 grid)
+            
+            context['students'] = students
+            context['show_preview'] = True
+            context['selected_count'] = len(students)
+            context['include_printed'] = include_printed
+        
+        elif action == 'mark_printed':
+            student_ids = request.POST.getlist('student_ids')
+            from django.utils import timezone
+            from core.models import UserProfile
+            
+            profile = get_profile(request.user)
+            
+            for sid in student_ids:
+                try:
+                    student = Student.objects.get(id=sid, school=school)
+                    student.id_printed = True
+                    student.id_printed_date = timezone.now()
+                    student.id_printed_by = profile
+                    student.save()
+                    
+                    AuditLog.log(
+                        action='ID_CARD_PRINTED',
+                        user=request.user,
+                        target_type='Student',
+                        target_id=student.student_id,
+                        target_name=f"{student.first_name} {student.last_name}",
+                        description="ID card printed",
+                        request=request,
+                        school=school,
+                    )
+                except Student.DoesNotExist:
+                    continue
+            
+            messages.success(request, f'{len(student_ids)} student(s) marked as printed.')
+            return redirect('core:batch_id_cards')
+    
+    # Get students for selection (only those with photos)
+    students = Student.objects.filter(
+        school=school,
+        is_active=True,
+        passport_photo__isnull=False
+    ).exclude(passport_photo='').order_by('current_class', 'last_name')
+    
+    # Group by class
+    students_by_class = {}
+    for student in students:
+        class_name = student.current_class or 'Unassigned'
+        if class_name not in students_by_class:
+            students_by_class[class_name] = []
+        students_by_class[class_name].append(student)
+    
+    context['students_by_class'] = students_by_class
+    context['total_with_photos'] = students.count()
+    
+    return render(request, 'core/dos/batch_id_cards.html', context)
+
+
+@login_required
+@feature_required('ID_GENERATOR')
+def print_id_card(request, student_id):
+    """Print individual student ID card."""
+    school = get_user_school(request.user)
+    if not school:
+        return redirect('core:dashboard')
+    
+    try:
+        student = Student.objects.get(student_id=student_id, school=school)
+    except Student.DoesNotExist:
+        messages.error(request, 'Student not found.')
+        return redirect('core:batch_id_cards')
+    
+    context = {
+        'student': student,
+        'school': school,
+    }
+    
+    return render(request, 'core/dos/id_card_single.html', context)

@@ -196,3 +196,188 @@ def get_client_ip(request):
 
 # Import timezone for session check
 from django.utils import timezone
+
+
+# ============================================================================
+# FEATURE ACTIVATION VIEWS
+# ============================================================================
+
+@require_http_methods(["GET", "POST"])
+def feature_activation_view(request):
+    """
+    View for activating features using 8-digit keys.
+    Accessible by all authenticated users.
+    """
+    from .models import FeatureActivationKey, FEATURE_CHOICES
+    from .activation import enable_feature_temporary
+    
+    status = get_license_status()
+    current_features = get_enabled_features()
+    
+    context = {
+        'status': status,
+        'features': FEATURE_CHOICES,
+        'current_features': current_features,
+        'feature_status': get_feature_status(),
+    }
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'activate_feature':
+            key = request.POST.get('activation_key', '').strip()
+            
+            if not key:
+                messages.error(request, 'Please enter an activation key.')
+                return render(request, 'licensing/activate_feature.html', context)
+            
+            # Validate the key
+            try:
+                feature_key = FeatureActivationKey.objects.get(key=key)
+                
+                if not feature_key.is_valid():
+                    messages.error(request, 'This activation key has expired or already been used.')
+                    return render(request, 'licensing/activate_feature.html', context)
+                
+                # Use the key
+                feature_key.is_used = True
+                feature_key.used_by = str(request.user) if request.user.is_authenticated else 'Anonymous'
+                feature_key.used_at = timezone.now()
+                feature_key.save()
+                
+                # Enable the feature temporarily
+                success = enable_feature_temporary(feature_key.feature)
+                
+                if success:
+                    # Log the activation
+                    LicenseLog.objects.create(
+                        action='FEATURE_ACTIVATED',
+                        feature_key=key,
+                        details=f'Feature {feature_key.feature} activated by {request.user}',
+                        ip_address=get_client_ip(request),
+                        user=request.user if request.user.is_authenticated else None,
+                    )
+                    messages.success(request, f'Feature "{dict(FEATURE_CHOICES).get(feature_key.feature, feature_key.feature)}" has been activated!')
+                else:
+                    messages.warning(request, 'Feature activated but may not persist after restart.')
+                    
+            except FeatureActivationKey.DoesNotExist:
+                messages.error(request, 'Invalid activation key.')
+            
+            return render(request, 'licensing/activate_feature.html', context)
+    
+    return render(request, 'licensing/activate_feature.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def generate_feature_key_view(request):
+    """
+    Super Admin view for generating 8-digit activation keys.
+    """
+    from django.contrib.auth.models import User
+    from django.conf import settings
+    from .models import FeatureActivationKey, FEATURE_CHOICES
+    
+    # Only superusers can generate keys
+    if not request.user.is_superuser:
+        messages.error(request, 'Only super administrators can generate activation keys.')
+        return redirect('licensing:management')
+    
+    context = {
+        'features': FEATURE_CHOICES,
+    }
+    
+    # Get existing keys
+    context['feature_keys'] = FeatureActivationKey.objects.all()[:20]
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'generate_key':
+            feature = request.POST.get('feature')
+            expiry_hours = int(request.POST.get('expiry_hours', 24))
+            
+            if not feature:
+                messages.error(request, 'Please select a feature.')
+                return render(request, 'licensing/generate_feature_key.html', context)
+            
+            # Generate unique 8-digit key
+            import random
+            import string
+            key = ''.join(random.choices(string.digits, k=8))
+            
+            # Ensure uniqueness
+            while FeatureActivationKey.objects.filter(key=key).exists():
+                key = ''.join(random.choices(string.digits, k=8))
+            
+            # Calculate expiry
+            expires_at = timezone.now() + timezone.timedelta(hours=expiry_hours)
+            
+            # Create the key
+            feature_key = FeatureActivationKey.objects.create(
+                key=key,
+                feature=feature,
+                expires_at=expires_at,
+                created_by=request.user,
+            )
+            
+            # Log the generation
+            LicenseLog.objects.create(
+                action='FEATURE_KEY_GENERATED',
+                feature_key=key,
+                details=f'Key for {feature} generated by {request.user}, expires in {expiry_hours}h',
+                ip_address=get_client_ip(request),
+                user=request.user,
+            )
+            
+            context['generated_key'] = feature_key
+            messages.success(request, f'Activation key generated: {key}')
+            
+        elif action == 'delete_key':
+            key_id = request.POST.get('key_id')
+            try:
+                fk = FeatureActivationKey.objects.get(id=key_id)
+                fk.delete()
+                messages.success(request, 'Activation key deleted.')
+            except FeatureActivationKey.DoesNotExist:
+                messages.error(request, 'Key not found.')
+    
+    return render(request, 'licensing/generate_feature_key.html', context)
+
+
+def check_feature_status_api(request):
+    """API endpoint to check if a specific feature is enabled."""
+    from django.http import JsonResponse
+    
+    feature = request.GET.get('feature')
+    if not feature:
+        return JsonResponse({'error': 'Feature parameter required'}, status=400)
+    
+    features = get_enabled_features()
+    is_enabled = feature in features
+    
+    return JsonResponse({
+        'feature': feature,
+        'enabled': is_enabled,
+        'all_features': features,
+    })
+
+
+# ============================================================================
+# FEATURE STATUS HELPERS (for templates)
+# ============================================================================
+
+def get_feature_status():
+    """Get a dictionary of all features and their status."""
+    from .models import FEATURE_CHOICES
+    enabled = get_enabled_features()
+    
+    status = {}
+    for code, name in FEATURE_CHOICES:
+        status[code] = {
+            'name': name,
+            'enabled': code in enabled,
+            'code': code,
+        }
+    return status

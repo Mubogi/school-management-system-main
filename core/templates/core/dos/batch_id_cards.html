@@ -1,0 +1,255 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Batch ID Card Generator{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-person-badge me-2" style="color: var(--accent-primary);"></i>
+      Batch ID Card Generator
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">
+      Generate printable ID cards for students (A4 format)
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:dos_dashboard' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Back
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Student Selection -->
+<div class="card mb-4">
+  <div class="card-header">
+    <i class="bi bi-check2-square me-2"></i>Select Students
+  </div>
+  <div class="card-body">
+    <form method="post" id="studentForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="generate_preview">
+      
+      <div class="mb-3">
+        <div class="form-check">
+          <input type="checkbox" class="form-check-input" id="includePrinted" name="include_printed">
+          <label class="form-check-label" for="includePrinted">
+            Include students whose cards were already printed (for replacements)
+          </label>
+        </div>
+      </div>
+      
+      <div class="row g-3">
+        {% for class_name, students in students_by_class.items %}
+        <div class="col-12">
+          <div class="card bg-light">
+            <div class="card-header py-2">
+              <div class="d-flex align-items-center justify-content-between">
+                <h6 class="mb-0">
+                  <i class="bi bi-book me-2"></i>{{ class_name }}
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleClassCheckboxes('{{ class_name }}')">
+                  Select All
+                </button>
+              </div>
+            </div>
+            <div class="card-body py-2">
+              <div class="row g-2">
+                {% for student in students %}
+                <div class="col-6 col-md-4 col-lg-3">
+                  <div class="form-check">
+                    <input type="checkbox" class="form-check-input student-checkbox" 
+                           name="student_ids" value="{{ student.id }}" 
+                           id="student{{ student.id }}" data-class="{{ class_name }}"
+                           {% if student.id_printed %}style="opacity: 0.5"{% endif %}>
+                    <label class="form-check-label w-100" for="student{{ student.id }}">
+                      <div class="d-flex align-items-center">
+                        {% if student.passport_photo %}
+                        <img src="{{ student.passport_photo.url }}" alt="" 
+                             class="rounded me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded bg-secondary me-2 d-flex align-items-center justify-content-center" 
+                             style="width: 30px; height: 30px;">
+                          <i class="bi bi-person text-white small"></i>
+                        </div>
+                        {% endif %}
+                        <span class="small">{{ student.first_name|slice:":10" }}</span>
+                        {% if student.id_printed %}
+                        <span class="badge bg-secondary ms-auto" style="font-size: 0.6rem;">Printed</span>
+                        {% endif %}
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      
+      <div class="mt-4 text-center">
+        <button type="submit" class="btn btn-primary btn-lg px-5">
+          <i class="bi bi-eye me-2"></i>Generate Preview
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Preview Section -->
+{% if show_preview %}
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div>
+      <i class="bi bi-eye me-2"></i>ID Card Preview
+      <span class="badge bg-primary ms-2">{{ selected_count }} cards</span>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-success" onclick="window.print()">
+        <i class="bi bi-printer me-2"></i>Print A4 Sheet
+      </button>
+      <form method="post" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="mark_printed">
+        {% for student in students %}
+        <input type="hidden" name="student_ids" value="{{ student.id }}">
+        {% endfor %}
+        <button type="submit" class="btn btn-outline-success">
+          <i class="bi bi-check-all me-2"></i>Mark All as Printed
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- A4 Print Preview -->
+    <div class="id-card-grid p-3" style="background: #f1f5f9;">
+      <div class="a4-sheet" style="
+        background: white;
+        width: 210mm;
+        min-height: 297mm;
+        padding: 10mm;
+        margin: 0 auto;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5mm;
+      ">
+        {% for student in students %}
+        <div class="id-card" style="
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          overflow: hidden;
+          page-break-inside: avoid;
+        ">
+          <div style="text-align: center; padding: 8px; background: var(--primary, #4f46e5); color: white;">
+            <small class="fw-bold" style="font-size: 0.65rem;">{{ school.school_name }}</small>
+          </div>
+          {% if student.passport_photo %}
+          <img src="{{ student.passport_photo.url }}" alt="{{ student.first_name }}" 
+               style="width: 100%; height: 50mm; object-fit: cover;">
+          {% else %}
+          <div style="width: 100%; height: 50mm; background: #e2e8f0; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-person text-muted" style="font-size: 2rem;"></i>
+          </div>
+          {% endif %}
+          <div style="padding: 6px; text-align: center; font-size: 0.6rem;">
+            <div class="fw-bold">{{ student.first_name }} {{ student.last_name }}</div>
+            <div class="text-muted">{{ student.student_id }}</div>
+            <div class="small">{{ student.current_class }} | {{ student.gender }}</div>
+            <div class="text-muted" style="font-size: 0.55rem;">{{ school.school_initials_prefix }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Cut lines guide -->
+    <div class="mt-3 p-3 bg-light rounded">
+      <h6 class="mb-2"><i class="bi bi-scissors me-2"></i>Print Instructions</h6>
+      <ol class="mb-0 small">
+        <li>Click "Print A4 Sheet" to open the print dialog</li>
+        <li>Select "A4" paper size</li>
+        <li>Enable "Background graphics" in print settings</li>
+        <li>Use scissors to cut along the grid lines</li>
+        <li>Laminate for durability</li>
+      </ol>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if total_with_photos == 0 %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-camera text-muted fs-1 mb-3 d-block"></i>
+    <h5 class="text-muted">No Photos Available</h5>
+    <p class="text-muted">Upload student photos first before generating ID cards.</p>
+    <a href="#" class="btn btn-primary">
+      <i class="bi bi-upload me-2"></i>Upload Student Photos
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<style media="print">
+@media print {
+  body * { visibility: hidden; }
+  .a4-sheet, .a4-sheet * { visibility: visible; }
+  .a4-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    margin: 0;
+    box-shadow: none;
+  }
+  .id-card {
+    border: 1px solid #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .id-card div[style*="background: var(--primary"] {
+    background: var(--primary, #4f46e5) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .card-header, .btn, nav, footer, .no-print { display: none !important; }
+}
+</style>
+
+<script>
+function toggleClassCheckboxes(className) {
+  const checkboxes = document.querySelectorAll(`.student-checkbox[data-class="${className}"]`);
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  checkboxes.forEach(cb => cb.checked = !allChecked);
+}
+
+// Select all with photos
+document.getElementById('studentForm')?.addEventListener('submit', function(e) {
+  const checked = document.querySelectorAll('.student-checkbox:checked').length;
+  if (checked === 0) {
+    e.preventDefault();
+    alert('Please select at least one student.');
+  } else if (checked > 40) {
+    e.preventDefault();
+    alert('Maximum 40 ID cards per batch. Please select fewer students.');
+  }
+});
+</script>
+{% endblock %}

@@ -265,3 +265,31 @@ def deactivate_license() -> bool:
         return True
     except Exception:
         return False
+
+
+def enable_feature_temporary(feature: str) -> bool:
+    """
+    Temporarily enable a feature by adding it to the current activation.
+    This feature will persist until the next activation update.
+    Returns: (success, message)
+    """
+    from .models import LicenseActivation
+    
+    try:
+        activation = LicenseActivation.objects.filter(is_active=True).first()
+        if not activation:
+            return False
+        
+        # Get current features
+        current_features = activation.enabled_features.split(',') if activation.enabled_features else []
+        current_features = [f.strip() for f in current_features if f.strip()]
+        
+        # Add the feature if not already present
+        if feature not in current_features:
+            current_features.append(feature)
+            activation.enabled_features = ','.join(current_features)
+            activation.save()
+        
+        return True
+    except Exception:
+        return False

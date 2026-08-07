@@ -122,4 +122,16 @@ urlpatterns = [
     # QR CODE FOR MOBILE/LAN ACCESS
     path('qr-connect/', views.QRCodeConnectView.as_view(), name='qr_connect'),
     path('qr-connect/image/', views.qr_code_image, name='qr_connect_image'),
+    
+    # TERMLY RETURN CHECKER
+    path('dos/termly-return/', report_workflow_views.TermlyReturnCheckerView.as_view(), name='termly_return_checker'),
+    
+    # BATCH ID CARDS
+    path('dos/batch-id-cards/', report_workflow_views.batch_id_card_generator, name='batch_id_cards'),
+    path('dos/id-card/<str:student_id>/', report_workflow_views.print_id_card, name='print_id_card'),
+    
+    # PARENT KIOSK PORTAL (PUBLIC)
+    path('parent-kiosk/', views.parent_kiosk_view, name='parent_kiosk'),
+    path('parent-kiosk/login/', views.parent_kiosk_login, name='parent_kiosk_login'),
+    path('api/parent-student/', views.api_get_parent_student, name='api_parent_student'),
 ]

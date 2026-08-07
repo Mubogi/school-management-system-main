@@ -247,3 +247,51 @@ def check_feature(feature):
         
         return wrapper
     return decorator
+
+
+# Feature codes for granular licensing
+FEATURE_PHOTO_UPLOAD = 'PHOTO_UPLOAD'
+FEATURE_ID_GENERATOR = 'ID_GENERATOR'
+FEATURE_PARENT_KIOSK = 'PARENT_KIOSK'
+FEATURE_PDF_PREVIEW = 'PDF_PREVIEW'
+FEATURE_BATCH_PROMOTION = 'BATCH_PROMOTION'
+FEATURE_FINANCE_REPORTS = 'FINANCE_REPORTS'
+FEATURE_SMS_REPORTS = 'SMS_REPORTS'
+FEATURE_ATTENDANCE = 'ATTENDANCE'
+FEATURE_CLOUD_SYNC = 'CLOUD_SYNC'
+FEATURE_ADVANCED_ANALYTICS = 'ADVANCED_ANALYTICS'
+
+
+def photo_upload_required(view_func):
+    """Decorator to restrict photo upload to authorized users only."""
+    return feature_required(FEATURE_PHOTO_UPLOAD)(view_func)
+
+
+def id_generator_required(view_func):
+    """Decorator to restrict ID card generation to authorized users only."""
+    return feature_required(FEATURE_ID_GENERATOR)(view_func)
+
+
+def parent_kiosk_required(view_func):
+    """Decorator to restrict parent kiosk access to authorized users only."""
+    return feature_required(FEATURE_PARENT_KIOSK)(view_func)
+
+
+def pdf_preview_required(view_func):
+    """Decorator to restrict PDF preview to authorized users only."""
+    return feature_required(FEATURE_PDF_PREVIEW)(view_func)
+
+
+def batch_promotion_required(view_func):
+    """Decorator to restrict batch promotion to authorized users only."""
+    return feature_required(FEATURE_BATCH_PROMOTION)(view_func)
+
+
+def finance_reports_required(view_func):
+    """Decorator to restrict finance reports to authorized users only."""
+    return feature_required(FEATURE_FINANCE_REPORTS)(view_func)
+
+
+def sms_reports_required(view_func):
+    """Decorator to restrict SMS/Exam reports to authorized users only."""
+    return feature_required(FEATURE_SMS_REPORTS)(view_func)
