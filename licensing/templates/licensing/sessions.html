@@ -1,0 +1,122 @@
+{% extends 'core/layout/sidebar_nav.html' %}
+{% load static %}
+
+{% block title %}User Sessions - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">
+            <i class="bi bi-people me-2 text-primary"></i>
+            User Sessions
+        </h2>
+        <span class="badge bg-primary px-3 py-2">
+            <i class="bi bi-person-check me-1"></i>
+            {{ total_sessions }} Active
+        </span>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Last Active</th>
+                            <th>Session ID</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                         style="width: 40px; height: 40px;">
+                                        <span class="text-white fw-bold">{{ session.user.username|slice:":1"|upper }}</span>
+                                    </div>
+                                    <div>
+                                        <strong>{{ session.user.get_full_name|default:session.user.username }}</strong>
+                                        {% if session.user.is_superuser %}
+                                            <span class="badge bg-danger ms-2">Admin</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ session.user.email|default:"-" }}</td>
+                            <td>
+                                {% with role=session.user.userprofile.role %}
+                                    {% if role == 'SUPER_ADMIN' %}
+                                        <span class="badge bg-danger">Super Admin</span>
+                                    {% elif role == 'HEAD_TEACHER' %}
+                                        <span class="badge bg-primary">Head Teacher</span>
+                                    {% elif role == 'CLASS_TEACHER' %}
+                                        <span class="badge bg-success">Class Teacher</span>
+                                    {% elif role == 'SUBJECT_TEACHER' %}
+                                        <span class="badge bg-info">Subject Teacher</span>
+                                    {% elif role == 'BURSAR' %}
+                                        <span class="badge bg-warning">Bursar</span>
+                                    {% elif role == 'SECRETARY' %}
+                                        <span class="badge bg-secondary">Secretary</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ role|default:"User" }}</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <span class="text-success">
+                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>
+                                </span>
+                                {{ session.last_login|date:"M d, Y H:i" }}
+                            </td>
+                            <td>
+                                <code class="small">{{ session.session_key|truncatechars:20 }}</code>
+                            </td>
+                            <td class="text-end">
+                                <form method="POST" action="{% url 'licensing:force_logout_session' %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="session_key" value="{{ session.session_key }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Force logout this user?')">
+                                        <i class="bi bi-box-arrow-right me-1"></i>
+                                        Logout
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-people" style="font-size: 3rem;"></i>
+                                    <h5 class="mt-3">No Active Sessions</h5>
+                                    <p>There are currently no active user sessions.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="alert alert-info mt-4 d-flex align-items-center">
+        <i class="bi bi-info-circle-fill me-3" style="font-size: 1.5rem;"></i>
+        <div>
+            <strong>Session Management</strong>
+            <p class="mb-0 small">
+                View all active user sessions across the system. Use the "Logout" button to instantly terminate any session.
+                This will force the user to log in again.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

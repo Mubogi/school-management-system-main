@@ -1,0 +1,207 @@
+{% extends 'core/layout/sidebar_nav.html' %}
+{% load static %}
+{% load feature_tags %}
+
+{% block title %}License Management - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">
+            <i class="bi bi-shield-check me-2 text-primary"></i>
+            License Management
+        </h2>
+    </div>
+
+    <div class="row g-4">
+        <!-- Current License Status -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-credit-card-2-front me-2"></i>
+                        Current License
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if status.is_activated %}
+                        <div class="text-center mb-4">
+                            <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" 
+                                 style="width: 80px; height: 80px;">
+                                <i class="bi bi-check-lg text-success" style="font-size: 2.5rem;"></i>
+                            </div>
+                            <h4 class="mb-1">{{ status.tier_name }}</h4>
+                            <span class="badge bg-success px-3 py-2">Active</span>
+                        </div>
+                        
+                        <div class="vstack gap-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Tier Level</span>
+                                <strong>{{ status.tier }}</strong>
+                            </div>
+                            {% if status.expires_at %}
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Expires</span>
+                                <strong>{{ status.expires_at|date:"F d, Y" }}</strong>
+                            </div>
+                            {% else %}
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Type</span>
+                                <strong>Permanent</strong>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">HWID Bound</span>
+                                <strong>{{ status.hwid|yesno:"Yes,No" }}</strong>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3">Not Activated</h5>
+                            <a href="{% url 'licensing:activate' %}" class="btn btn-primary mt-3">
+                                <i class="bi bi-key me-2"></i>
+                                Activate Now
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Hardware ID -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-motherboard me-2"></i>
+                        Hardware ID
+                    </h5>
+                </div>
+                <div class="card-body d-flex align-items-center">
+                    <div class="w-100">
+                        <div class="bg-light p-3 rounded text-center mb-3">
+                            <code class="hwid-display">{{ hwid }}</code>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            This Hardware ID is unique to this machine. Provide it when purchasing or renewing your license.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'licensing:activate' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-key me-2"></i>
+                            Manage Activation
+                        </a>
+                        <a href="{% url 'licensing:session_management' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-people me-2"></i>
+                            User Sessions
+                        </a>
+                        <button class="btn btn-outline-info" onclick="copyHWID()">
+                            <i class="bi bi-clipboard me-2"></i>
+                            Copy HWID
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Access -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="bi bi-grid-3x3-gap me-2"></i>
+                Feature Access
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% get_features user as features %}
+                {% for feature in features %}
+                <div class="col-md-3 col-6">
+                    <div class="p-3 rounded bg-light">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>{{ feature|title }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="bi bi-clock-history me-2"></i>
+                Recent Activity
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Action</th>
+                            <th>License Key</th>
+                            <th>Details</th>
+                            <th>IP Address</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>
+                                {% if log.action == 'ACTIVATED' %}
+                                    <span class="badge bg-success">{{ log.action }}</span>
+                                {% elif log.action == 'FAILED' %}
+                                    <span class="badge bg-danger">{{ log.action }}</span>
+                                {% elif log.action == 'DEACTIVATED' %}
+                                    <span class="badge bg-warning">{{ log.action }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ log.action }}</span>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ log.license_key|default:"-" }}</code></td>
+                            <td>{{ log.details|truncatechars:50 }}</td>
+                            <td><small>{{ log.ip_address|default:"-" }}</small></td>
+                            <td><small>{{ log.created_at|date:"M d, Y H:i" }}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">No activity recorded</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyHWID() {
+    const hwid = "{{ hwid }}";
+    navigator.clipboard.writeText(hwid).then(() => {
+        alert('Hardware ID copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

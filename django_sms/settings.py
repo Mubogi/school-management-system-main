@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'school',
+    'licensing',
 ]
 
 MIDDLEWARE = [
@@ -29,6 +30,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'licensing.middleware.LicenseCheckMiddleware',
 ]
 
 ROOT_URLCONF = 'django_sms.urls'
@@ -36,7 +38,10 @@ ROOT_URLCONF = 'django_sms.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'school' / 'templates'],
+        'DIRS': [
+            BASE_DIR / 'school' / 'templates',
+            BASE_DIR / 'licensing' / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -44,6 +49,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'licensing.templatetags.feature_tags.get_license_context',
             ],
         },
     },

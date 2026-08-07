@@ -47,7 +47,7 @@ ROLE_PERMISSIONS = {
 
 def _get_perm(codename):
     try:
-        return Permission.objects.get(codename=codename)
+        return Permission.objects.filter(codename=codename).first()
     except Permission.DoesNotExist:
         return None
 

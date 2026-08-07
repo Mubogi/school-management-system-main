@@ -108,6 +108,24 @@ class StudentRegistrationForm(forms.ModelForm):
 
 class SchoolSettingsForm(forms.ModelForm):
     """Edit the single school configuration for this deployment."""
+    
+    # Dropdown fields for academic settings
+    active_academic_year = forms.ChoiceField(
+        choices=[],  # Populated in __init__
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Academic Year'
+    )
+    active_term = forms.ChoiceField(
+        choices=[
+            ('T1', 'Term 1'),
+            ('T2', 'Term 2'),
+            ('T3', 'Term 3'),
+            ('S1', 'Semester 1'),
+            ('S2', 'Semester 2'),
+        ],
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Active Term'
+    )
 
     class Meta:
         model = SchoolConfiguration
@@ -128,10 +146,16 @@ class SchoolSettingsForm(forms.ModelForm):
             'head_teacher_name': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
             'bursar_name': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
             'dos_name': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
-            'active_academic_year': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
-            'active_term': forms.TextInput(attrs={'class': TAILWIND_INPUT, 'placeholder': 'e.g. T1'}),
             'logo': forms.ClearableFileInput(attrs={'class': 'w-full'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Generate academic year choices (current year - 5 to + 5)
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_choices = [(str(y), str(y)) for y in range(current_year - 5, current_year + 6)]
+        self.fields['active_academic_year'].choices = year_choices
 
 
 class SchoolConfigForm(SchoolSettingsForm):
@@ -347,15 +371,42 @@ class StudentTermRecordForm(forms.ModelForm):
 
 
 class ClassPromotionRuleForm(forms.ModelForm):
+    from_class = forms.ModelChoiceField(
+        queryset=SchoolClass.objects.none(),
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='From Class'
+    )
+    to_class = forms.ModelChoiceField(
+        queryset=SchoolClass.objects.none(),
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='To Class'
+    )
+    
     class Meta:
         from .models import ClassPromotionRule
         model = ClassPromotionRule
         fields = ['from_class', 'to_class', 'pass_mark']
         widgets = {
-            'from_class': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
-            'to_class': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
             'pass_mark': forms.NumberInput(attrs={'class': TAILWIND_INPUT, 'placeholder': 'Pass mark % (optional)'}),
         }
+    
+    def __init__(self, *args, school=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if school:
+            self.fields['from_class'].queryset = SchoolClass.objects.filter(school=school)
+            self.fields['to_class'].queryset = SchoolClass.objects.filter(school=school)
+        else:
+            self.fields['from_class'].queryset = SchoolClass.objects.none()
+            self.fields['to_class'].queryset = SchoolClass.objects.none()
+    
+    def clean(self):
+        cleaned = super().clean()
+        from_class = cleaned.get('from_class')
+        to_class = cleaned.get('to_class')
+        if from_class and to_class:
+            cleaned['from_class'] = from_class.name if hasattr(from_class, 'name') else from_class
+            cleaned['to_class'] = to_class.name if hasattr(to_class, 'name') else to_class
+        return cleaned
 
 
 class StaffPasswordResetForm(forms.Form):
@@ -411,15 +462,37 @@ class SuperAdminGradingForm(forms.ModelForm):
 
 
 class SuperAdminPeriodForm(forms.ModelForm):
+    active_academic_year = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Academic Year'
+    )
+    active_term = forms.ChoiceField(
+        choices=[
+            ('T1', 'Term 1'),
+            ('T2', 'Term 2'),
+            ('T3', 'Term 3'),
+            ('S1', 'Semester 1'),
+            ('S2', 'Semester 2'),
+        ],
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Active Term'
+    )
+    
     class Meta:
         model = SchoolConfiguration
         fields = ['academic_period_type', 'periods_per_year', 'active_term', 'active_academic_year']
         widgets = {
             'academic_period_type': forms.Select(attrs={'class': TAILWIND_INPUT}),
             'periods_per_year': forms.NumberInput(attrs={'class': TAILWIND_INPUT, 'min': 1, 'max': 4}),
-            'active_term': forms.TextInput(attrs={'class': TAILWIND_INPUT, 'placeholder': 'e.g. T1 or S1'}),
-            'active_academic_year': forms.TextInput(attrs={'class': TAILWIND_INPUT}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_choices = [(str(y), str(y)) for y in range(current_year - 5, current_year + 6)]
+        self.fields['active_academic_year'].choices = year_choices
 
 
 class SuperAdminBackupForm(forms.ModelForm):
@@ -441,8 +514,66 @@ class SuperAdminBackupForm(forms.ModelForm):
 
 
 class PromotionRunForm(forms.Form):
-    to_academic_year = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'class': TAILWIND_INPUT}))
-    reset_term = forms.BooleanField(required=False, initial=False)
+    to_academic_year = forms.ChoiceField(
+        choices=[],  # Populated in __init__
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Promote to Academic Year'
+    )
+    reset_term = forms.BooleanField(required=False, initial=False, label='Reset to Term 1')
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_choices = [(str(y), str(y)) for y in range(current_year, current_year + 6)]
+        self.fields['to_academic_year'].choices = year_choices
+
+
+class StudentBulkPromotionForm(forms.Form):
+    """Form for bulk promoting students from one class to another."""
+    from_class = forms.ModelChoiceField(
+        queryset=SchoolClass.objects.none(),
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Current Class'
+    )
+    to_class = forms.ModelChoiceField(
+        queryset=SchoolClass.objects.none(),
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Target Class'
+    )
+    academic_year = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Target Academic Year'
+    )
+    student_ids = forms.CharField(
+        widget=forms.HiddenInput(),
+        help_text='Comma-separated student IDs to promote'
+    )
+    
+    def __init__(self, *args, school=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if school:
+            self.fields['from_class'].queryset = SchoolClass.objects.filter(school=school)
+            self.fields['to_class'].queryset = SchoolClass.objects.filter(school=school)
+        else:
+            self.fields['from_class'].queryset = SchoolClass.objects.none()
+            self.fields['to_class'].queryset = SchoolClass.objects.none()
+        
+        # Populate academic year choices
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_choices = [(str(y), str(y)) for y in range(current_year, current_year + 6)]
+        self.fields['academic_year'].choices = year_choices
+    
+    def clean(self):
+        cleaned = super().clean()
+        from_class = cleaned.get('from_class')
+        to_class = cleaned.get('to_class')
+        if from_class and to_class:
+            if from_class.name == to_class.name:
+                raise forms.ValidationError("Source and target classes must be different.")
+        return cleaned
 
 
 class PromotionCriteriaForm(forms.ModelForm):
@@ -462,13 +593,34 @@ class PromotionCriteriaForm(forms.ModelForm):
 
 
 class LoadNewTermForm(forms.Form):
-    new_term = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'class': TAILWIND_INPUT, 'placeholder': 'e.g. T2'}))
-    new_academic_year = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'class': TAILWIND_INPUT}))
+    new_term = forms.ChoiceField(
+        choices=[
+            ('T1', 'Term 1'),
+            ('T2', 'Term 2'),
+            ('T3', 'Term 3'),
+            ('S1', 'Semester 1'),
+            ('S2', 'Semester 2'),
+        ],
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='New Term'
+    )
+    new_academic_year = forms.ChoiceField(
+        choices=[],  # Populated in __init__
+        widget=forms.Select(attrs={'class': TAILWIND_INPUT}),
+        label='Academic Year'
+    )
     archive_notes = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': TAILWIND_INPUT, 'rows': 2, 'placeholder': 'Optional notes for archived term'}),
     )
     reports_were_published = forms.BooleanField(required=False, initial=True)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_choices = [(str(y), str(y)) for y in range(current_year - 5, current_year + 6)]
+        self.fields['new_academic_year'].choices = year_choices
 
 
 class ReportNotifyForm(forms.Form):

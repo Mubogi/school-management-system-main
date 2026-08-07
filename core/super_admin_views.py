@@ -394,11 +394,7 @@ def pwa_manifest(request):
 
 def pwa_service_worker(request):
     from django.contrib.staticfiles.storage import staticfiles_storage
-    try:
-        sw_path = staticfiles_storage.path('core/sw.js')
-        with open(sw_path, encoding='utf-8') as f:
-            content = f.read()
-    except (OSError, ValueError):
-        from django.template.loader import render_to_string
-        content = render_to_string('core/sw.js', request=request)
+    sw_path = staticfiles_storage.path('core/sw.js')
+    with open(sw_path, encoding='utf-8') as f:
+        content = f.read()
     return HttpResponse(content, content_type='application/javascript')
