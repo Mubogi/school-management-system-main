@@ -6,11 +6,13 @@ from . import report_workflow_views
 from . import super_admin_views
 from . import sync_views
 from . import master_vendor_views
+from . import setup_views
 
 app_name = 'core'
 
 urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
+    path('setup/', setup_views.SetupWizardView.as_view(), name='setup_wizard'),
     path('accounts/login/', auth_views.LoginView.as_view(
         template_name='registration/login.html',
     ), name='login'),
