@@ -4,26 +4,171 @@
   <meta charset="utf-8">
   <style>
     @page { size: A5 portrait; margin: 1cm; }
-    body { font-family: 'Segoe UI', sans-serif; font-size: 11px; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+    
+    .receipt-container {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+    
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 2px dashed #cbd5e1;
+    }
+    
+    .receipt-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+    }
+    
+    .receipt-id {
+      font-size: 10px;
+      color: #64748b;
+      font-family: monospace;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
     table { width: 100%; border-collapse: collapse; }
-    td { padding: 4px 6px; vertical-align: top; }
-    .amount { font-size: 14px; font-weight: bold; }
+    td { padding: 6px 8px; vertical-align: top; border-bottom: 1px solid #f1f5f9; }
+    td:first-child { color: #64748b; font-weight: 500; width: 35%; }
+    td:last-child { font-weight: 600; color: #0f172a; }
+    
+    .amount-box {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      margin: 12px 0;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+    
+    .amount-box .label {
+      color: rgba(255,255,255,0.9);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .amount-box .value {
+      color: white;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    
+    .summary-grid {
+      display: table;
+      width: 100%;
+      margin: 10px 0;
+    }
+    
+    .summary-row {
+      display: table-row;
+    }
+    
+    .summary-cell {
+      display: table-cell;
+      padding: 8px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .summary-cell:nth-child(1) { background: #f8fafc; }
+    .summary-cell:nth-child(2) { background: #ecfdf5; }
+    .summary-cell:nth-child(3) { background: #fef2f2; }
+    
+    .summary-cell .label {
+      display: block;
+      font-size: 9px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .summary-cell .value {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    
+    .summary-cell:nth-child(1) .value { color: #475569; }
+    .summary-cell:nth-child(2) .value { color: #059669; }
+    .summary-cell:nth-child(3) .value { color: #dc2626; }
+    
+    .footer {
+      text-align: center;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 9px;
+      color: #94a3b8;
+    }
+    
+    .footer .verified {
+      color: #10b981;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
   {% include "core/pdf/letterhead.html" %}
-  <h2 style="text-align:center; font-size:14px;">OFFICIAL PAYMENT RECEIPT</h2>
-  <p style="text-align:center;">Receipt: <strong>{{ payment.unique_receipt_id }}</strong></p>
-  <table>
-    <tr><td>Date</td><td>{{ payment.date_of_payment|date:"F j, Y H:i" }}</td></tr>
-    <tr><td>Student</td><td>{{ payment.student.first_name }} {{ payment.student.last_name }} ({{ payment.student.student_id }})</td></tr>
-    <tr><td>Class</td><td>{{ payment.student.current_class }}</td></tr>
-    <tr><td>Term / Year</td><td>{{ payment.term }} / {{ payment.academic_year }}</td></tr>
-    <tr><td>Mode</td><td>{{ payment.get_payment_mode_display }}</td></tr>
-    <tr><td>Term fees</td><td>Ushs {{ total_fees }}</td></tr>
-    <tr><td>Paid now</td><td class="amount">Ushs {{ payment.amount_paid }}</td></tr>
-    <tr><td>Total paid</td><td>Ushs {{ total_paid_after }}</td></tr>
-    <tr><td><strong>Balance</strong></td><td class="amount">Ushs {{ payment.balance_remaining }}</td></tr>
-  </table>
+  
+  <div class="receipt-container">
+    <div class="receipt-header">
+      <div class="receipt-badge">✓ PAYMENT RECEIPT</div>
+      <div class="receipt-id">{{ payment.unique_receipt_id }}</div>
+    </div>
+    
+    <div class="summary-grid">
+      <div class="summary-row">
+        <div class="summary-cell">
+          <span class="label">Term Fees</span>
+          <span class="value">Ushs {{ total_fees }}</span>
+        </div>
+        <div class="summary-cell">
+          <span class="label">Total Paid</span>
+          <span class="value">Ushs {{ total_paid_after }}</span>
+        </div>
+        <div class="summary-cell">
+          <span class="label">Balance</span>
+          <span class="value">Ushs {{ payment.balance_remaining }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <table>
+      <tr><td>Date</td><td>{{ payment.date_of_payment|date:"F j, Y H:i" }}</td></tr>
+      <tr><td>Student</td><td>{{ payment.student.first_name }} {{ payment.student.last_name }}</td></tr>
+      <tr><td>Student ID</td><td>{{ payment.student.student_id }}</td></tr>
+      <tr><td>Class</td><td>{{ payment.student.current_class }}</td></tr>
+      <tr><td>Term / Year</td><td>{{ payment.term }} / {{ payment.academic_year }}</td></tr>
+      <tr><td>Payment Mode</td><td>{{ payment.get_payment_mode_display }}</td></tr>
+    </table>
+    
+    <div class="amount-box">
+      <div class="label">Amount Paid This Transaction</div>
+      <div class="value">Ushs {{ payment.amount_paid }}</div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <span class="verified">✓ Verified Payment</span> — Generated by School Management System<br>
+    Thank you for your payment
+  </div>
 </body>
 </html>

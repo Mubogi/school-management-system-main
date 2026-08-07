@@ -108,4 +108,8 @@ urlpatterns = [
     path('pdf/cleared-students/', views.bursar_clearance_list_pdf, name='bursar_clearance_list_pdf'),
     path('pdf/outstanding-students/', views.bursar_outstanding_list_pdf, name='bursar_outstanding_list_pdf'),
     path('pdf/clearance/<str:student_id>/', views.student_clearance_pdf, name='student_clearance_pdf'),
+    
+    # QR CODE FOR MOBILE/LAN ACCESS
+    path('qr-connect/', views.QRCodeConnectView.as_view(), name='qr_connect'),
+    path('qr-connect/image/', views.qr_code_image, name='qr_connect_image'),
 ]

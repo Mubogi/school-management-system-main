@@ -2611,3 +2611,94 @@ class DOSReportsView(RoleRequiredMixin, TemplateView):
                 })
 
         return ctx
+
+
+# ============================================================================
+# QR CODE FOR MOBILE/LAN ACCESS
+# ============================================================================
+
+import qrcode
+from io import BytesIO
+import uuid
+
+
+def generate_qr_code_data_url(url, size=300):
+    """Generate a QR code as a data URL for embedding in HTML."""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    import base64
+    img_str = base64.b64encode(buffer.getvalue()).decode()
+    return f"data:image/png;base64,{img_str}"
+
+
+def get_base_url(request):
+    """Get the base URL for the application."""
+    if request:
+        return request.build_absolute_uri('/')[:-1]  # Remove trailing slash
+    return 'http://localhost:8000'
+
+
+class QRCodeConnectView(TemplateView):
+    """Display QR code for members to connect via phone LAN."""
+    template_name = 'core/qr_connect.html'
+    allowed_roles = ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'SECRETARY', 'BURSAR', 'HEAD_TEACHER', 'DOS']
+    
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        profile = get_profile(self.request.user)
+        school = get_user_school(profile)
+        ctx['school'] = school
+        ctx['user_role'] = profile.role if profile else ''
+        
+        # Generate base URL
+        base_url = get_base_url(self.request)
+        login_url = f"{base_url}/accounts/login/"
+        
+        # Generate QR code
+        ctx['qr_code_url'] = generate_qr_code_data_url(login_url)
+        ctx['login_url'] = login_url
+        ctx['school_name'] = school.school_name if school else 'School Management System'
+        
+        return ctx
+
+
+def qr_code_image(request):
+    """Return QR code image directly for downloading."""
+    profile = get_profile(request.user)
+    school = get_user_school(profile)
+    
+    base_url = get_base_url(request)
+    login_url = f"{base_url}/accounts/login/"
+    
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(login_url)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    from django.http import HttpResponse
+    response = HttpResponse(buffer.getvalue(), content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="school_connect_qr.png"'
+    return response
