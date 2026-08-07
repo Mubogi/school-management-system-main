@@ -1,10 +1,105 @@
 """
-Feature Access Decorators
-Use @feature_required('feature_name') to protect views.
+Feature Access & License Decorators
+Use @feature_required('feature_name') or @license_required('tier_name') to protect views.
 """
 from functools import wraps
 from django.http import HttpResponseForbidden, JsonResponse, Http404
 from django.shortcuts import redirect
+
+
+# License tier hierarchy
+TIER_HIERARCHY = {
+    'BASIC': 1,
+    'STANDARD': 2,
+    'PREMIUM': 3,
+}
+
+
+def license_required(*required_tiers, **kwargs):
+    """
+    Decorator to require specific license tiers for a view.
+    Supports tier hierarchy - a higher tier grants access to lower tier views.
+    
+    Usage:
+        @license_required('BASIC')
+        def basic_view(request):  # Accessible by BASIC, STANDARD, PREMIUM
+        
+        @license_required('STANDARD')
+        def standard_view(request):  # Accessible by STANDARD, PREMIUM only
+        
+        @license_required('PREMIUM')
+        def premium_view(request):  # Accessible by PREMIUM only
+    
+    Options:
+        - redirect_to: URL to redirect to if tier not met (default: /licensing/activate/)
+        - ajax_response: Return JSON error for AJAX requests (default: True)
+    """
+    redirect_to = kwargs.get('redirect_to', '/licensing/activate/')
+    ajax_response = kwargs.get('ajax_response', True)
+    
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            from .activation import _get_license_status
+            
+            # Superusers always have access
+            if request.user.is_superuser:
+                return view_func(request, *args, **kwargs)
+            
+            # Get current license status
+            status = _get_license_status()
+            current_tier = status.get('tier', 'NONE')
+            
+            # Check if any of the required tiers is met
+            tier_met = False
+            for required in required_tiers:
+                # Check if current tier is at least the required tier
+                current_level = TIER_HIERARCHY.get(current_tier, 0)
+                required_level = TIER_HIERARCHY.get(required, 0)
+                
+                if current_level >= required_level and current_level > 0:
+                    tier_met = True
+                    break
+            
+            if not tier_met:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and ajax_response:
+                    return JsonResponse({
+                        'error': f'License tier required: {", ".join(required_tiers)}',
+                        'code': 'TIER_REQUIRED',
+                        'current_tier': current_tier,
+                        'required_tiers': list(required_tiers),
+                    }, status=403)
+                
+                return HttpResponseForbidden(f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Upgrade Required</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                </head>
+                <body class="bg-light d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+                    <div class="text-center">
+                        <div class="card shadow-lg" style="max-width: 500px;">
+                            <div class="card-body p-5">
+                                <i class="bi bi-shield-lock text-warning fs-1 mb-3 d-block"></i>
+                                <h3 class="card-title mb-3">License Upgrade Required</h3>
+                                <p class="text-muted mb-4">
+                                    This feature requires a <strong>{'/'.join(required_tiers)}</strong> license or higher.
+                                    <br>Your current license: <span class="badge bg-secondary">{current_tier}</span>
+                                </p>
+                                <a href="/licensing/activate/" class="btn btn-primary">
+                                    <i class="bi bi-rocket-takeoff me-2"></i>Upgrade License
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """)
+            
+            return view_func(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def feature_required(*features, **kwargs):

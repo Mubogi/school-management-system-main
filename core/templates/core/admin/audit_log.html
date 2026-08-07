@@ -1,0 +1,152 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">Activity Log</h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">Track all user actions and system changes</p>
+  </div>
+  <div>
+    <a href="{% url 'core:database_management' %}" class="btn btn-outline-primary">
+      <i class="bi bi-database me-2"></i>Database Management
+    </a>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label small text-muted">Filter by Action</label>
+        <select name="action" class="form-select">
+          <option value="">All Actions</option>
+          {% for value, label in action_choices %}
+          <option value="{{ value }}" {% if request.GET.action == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted">Filter by User</label>
+        <input type="text" name="user" class="form-control" placeholder="Username..." value="{{ request.GET.user|default:'' }}">
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-search me-2"></i>Apply Filters
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Log List -->
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div>
+      <i class="bi bi-list-ul me-2"></i>Activity Records
+    </div>
+    <span class="badge" style="background: var(--accent-primary);">{{ logs.paginator.count }} records</span>
+  </div>
+  <div class="card-body p-0">
+    {% if logs %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>User</th>
+            <th>Target</th>
+            <th>Description</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td class="small text-muted">
+              {{ log.created_at|date:"M d, Y" }}<br>
+              <span class="text-dark">{{ log.created_at|time:"H:i:s" }}</span>
+            </td>
+            <td>
+              <span class="badge {% if 'CREATE' in log.action or 'LOGIN' in log.action %}bg-success{% elif 'DELETE' in log.action or 'TERMINATE' in log.action %}bg-danger{% elif 'UPDATE' in log.action %}bg-warning{% else %}bg-info{% endif %}">
+                {{ log.get_action_display }}
+              </span>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white me-2" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                  {{ log.username|slice:":1"|upper }}
+                </div>
+                {{ log.username }}
+              </div>
+            </td>
+            <td>
+              {% if log.target_id %}
+              <code class="small">{{ log.target_id }}</code>
+              {% if log.target_name %}
+              <br><small class="text-muted">{{ log.target_name|truncatechars:30 }}</small>
+              {% endif %}
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if log.description %}
+              <small>{{ log.description|truncatechars:50 }}</small>
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td><code class="small">{{ log.ip_address|default:"-" }}</code></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if logs.has_other_pages %}
+    <div class="card-footer">
+      <nav>
+        <ul class="pagination justify-content-center mb-0">
+          {% if logs.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ logs.previous_page_number }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+          
+          {% for num in logs.paginator.page_range %}
+            {% if logs.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if logs.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ logs.next_page_number }}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}">Next</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-clipboard text-muted fs-1 mb-3 d-block"></i>
+      <p class="text-muted mb-0">No activity logs found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

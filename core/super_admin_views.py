@@ -398,3 +398,284 @@ def pwa_service_worker(request):
     with open(sw_path, encoding='utf-8') as f:
         content = f.read()
     return HttpResponse(content, content_type='application/javascript')
+
+
+# ============================================================================
+# DATABASE MANAGEMENT & SESSION CONTROL
+# ============================================================================
+
+class DatabaseManagementView(SuperAdminOnlyMixin, TemplateView):
+    """Super Admin database management page."""
+    template_name = 'core/admin/database_management.html'
+    
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        profile = get_profile(self.request.user)
+        ctx['user_role'] = profile.role if profile else ''
+        
+        # Get database info
+        import os
+        from datetime import datetime
+        from django.conf import settings
+        
+        db_path = settings.DATABASES['default']['NAME']
+        if os.path.exists(db_path):
+            db_size = os.path.getsize(db_path)
+            ctx['db_size'] = db_size
+            ctx['db_size_mb'] = round(db_size / (1024 * 1024), 2)
+            mtime = os.path.getmtime(db_path)
+            ctx['db_modified'] = datetime.fromtimestamp(mtime)
+        else:
+            ctx['db_size'] = 0
+            ctx['db_size_mb'] = 0
+            ctx['db_modified'] = None
+        
+        ctx['db_path'] = db_path
+        
+        # Backup history
+        from .models import SchoolConfiguration
+        from licensing.models import AuditLog
+        
+        ctx['backup_logs'] = AuditLog.objects.filter(
+            action='BACKUP_CREATE'
+        ).select_related('user')[:10]
+        
+        return ctx
+
+
+def create_instant_backup(request):
+    """Create an instant database backup."""
+    import shutil
+    import os
+    from django.conf import settings
+    from django.utils import timezone
+    
+    if not request.user.is_superuser:
+        return HttpResponse('Unauthorized', status=401)
+    
+    try:
+        db_path = settings.DATABASES['default']['NAME']
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Create backups directory
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Copy database
+        backup_name = f'db_backup_{timestamp}.sqlite3'
+        backup_path = os.path.join(backup_dir, backup_name)
+        shutil.copy2(db_path, backup_path)
+        
+        # Also create a backup_info.json
+        import json
+        info = {
+            'timestamp': timestamp,
+            'created_by': request.user.username,
+            'original_size': os.path.getsize(db_path),
+            'backup_path': backup_path,
+        }
+        info_path = os.path.join(backup_dir, f'backup_info_{timestamp}.json')
+        with open(info_path, 'w') as f:
+            json.dump(info, f, indent=2)
+        
+        # Log the action
+        from licensing.models import AuditLog
+        AuditLog.log(
+            action='BACKUP_CREATE',
+            user=request.user,
+            target_type='Database',
+            target_id=backup_name,
+            description=f'Created backup: {backup_name}',
+            request=request,
+        )
+        
+        messages.success(request, f'Backup created successfully: {backup_name}')
+        
+    except Exception as e:
+        messages.error(request, f'Backup failed: {str(e)}')
+    
+    return redirect('core:database_management')
+
+
+def download_backup(request, backup_name):
+    """Download a specific backup file."""
+    if not request.user.is_superuser:
+        return HttpResponse('Unauthorized', status=401)
+    
+    import os
+    from django.conf import settings
+    
+    backup_path = os.path.join(settings.BASE_DIR, 'backups', backup_name)
+    
+    if not os.path.exists(backup_path):
+        raise Http404('Backup not found')
+    
+    response = FileResponse(
+        open(backup_path, 'rb'),
+        as_attachment=True,
+        filename=backup_name
+    )
+    return response
+
+
+class SessionManagementView(SuperAdminOnlyMixin, TemplateView):
+    """Super Admin session management page."""
+    template_name = 'core/admin/session_management.html'
+    
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        profile = get_profile(self.request.user)
+        ctx['user_role'] = profile.role if profile else ''
+        
+        # Get active sessions
+        from django.contrib.sessions.models import Session
+        from django.contrib.auth.models import User
+        
+        active_sessions = []
+        sessions = Session.objects.filter(
+            expire_date__gte=timezone.now()
+        ).order_by('-expire_date')
+        
+        for session in sessions:
+            session_data = session.get_decoded()
+            user_id = session_data.get('_auth_user_id')
+            
+            if user_id:
+                try:
+                    user = User.objects.get(id=user_id)
+                    user_profile = getattr(user, 'userprofile', None)
+                    
+                    active_sessions.append({
+                        'session_key': session.session_key,
+                        'user': user,
+                        'username': user.username,
+                        'role': user_profile.role if user_profile else 'Unknown',
+                        'last_login': user.last_login,
+                        'ip_address': session_data.get('ip_address', 'N/A'),
+                        'expires': session.expire_date,
+                    })
+                except User.DoesNotExist:
+                    continue
+        
+        ctx['active_sessions'] = active_sessions
+        ctx['session_count'] = len(active_sessions)
+        
+        # Current session info
+        if self.request.session.session_key:
+            ctx['current_session_key'] = self.request.session.session_key
+        
+        return ctx
+
+
+def terminate_session(request, session_key):
+    """Terminate a specific session."""
+    if not request.user.is_superuser:
+        return HttpResponse('Unauthorized', status=401)
+    
+    from django.contrib.sessions.models import Session
+    from django.contrib.auth.models import User
+    from licensing.models import AuditLog
+    
+    try:
+        session = Session.objects.get(session_key=session_key)
+        session_data = session.get_decoded()
+        user_id = session_data.get('_auth_user_id')
+        
+        # Don't allow terminating own session
+        if request.session.session_key == session_key:
+            messages.error(request, 'Cannot terminate your own session.')
+            return redirect('core:session_management')
+        
+        # Get username for logging
+        username = 'Unknown'
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                username = user.username
+            except User.DoesNotExist:
+                pass
+        
+        # Log the action
+        AuditLog.log(
+            action='SESSION_TERMINATE',
+            user=request.user,
+            target_type='Session',
+            target_id=session_key,
+            description=f'Terminated session for user: {username}',
+            request=request,
+        )
+        
+        # Delete the session
+        session.delete()
+        
+        messages.success(request, f'Session for {username} has been terminated.')
+        
+    except Session.DoesNotExist:
+        messages.error(request, 'Session not found.')
+    
+    return redirect('core:session_management')
+
+
+def terminate_all_sessions(request):
+    """Terminate all sessions except the current one."""
+    if not request.user.is_superuser:
+        return HttpResponse('Unauthorized', status=401)
+    
+    from django.contrib.sessions.models import Session
+    from licensing.models import AuditLog
+    
+    current_key = request.session.session_key
+    
+    # Delete all sessions except current
+    deleted_count = Session.objects.exclude(
+        session_key=current_key
+    ).filter(
+        expire_date__gte=timezone.now()
+    ).delete()[0]
+    
+    # Log the action
+    AuditLog.log(
+        action='SESSION_TERMINATE',
+        user=request.user,
+        description=f'Terminated {deleted_count} sessions',
+        request=request,
+    )
+    
+    messages.success(request, f'{deleted_count} session(s) terminated.')
+    return redirect('core:session_management')
+
+
+class AuditLogView(SuperAdminOnlyMixin, TemplateView):
+    """View audit logs."""
+    template_name = 'core/admin/audit_log.html'
+    
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        profile = get_profile(self.request.user)
+        ctx['user_role'] = profile.role if profile else ''
+        
+        from licensing.models import AuditLog
+        from django.db.models import Q
+        
+        # Filter by action if provided
+        action_filter = self.request.GET.get('action')
+        user_filter = self.request.GET.get('user')
+        
+        logs = AuditLog.objects.select_related('user').order_by('-created_at')
+        
+        if action_filter:
+            logs = logs.filter(action=action_filter)
+        
+        if user_filter:
+            logs = logs.filter(username__icontains=user_filter)
+        
+        # Pagination
+        from django.core.paginator import Paginator
+        paginator = Paginator(logs, 50)
+        page = self.request.GET.get('page', 1)
+        ctx['logs'] = paginator.get_page(page)
+        
+        # Get unique actions for filter dropdown
+        ctx['action_choices'] = AuditLog.ACTION_CHOICES
+        
+        return ctx

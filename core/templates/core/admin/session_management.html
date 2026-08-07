@@ -1,0 +1,135 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Session Management{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">Active Sessions</h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">Manage user sessions and security</p>
+  </div>
+  <div>
+    <a href="{% url 'core:terminate_all_sessions' %}" class="btn btn-outline-danger" onclick="return confirm('Terminate all sessions except yours?')">
+      <i class="bi bi-x-circle me-2"></i>Terminate All Others
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Stats -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="d-flex align-items-center">
+        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1);">
+          <i class="bi bi-people" style="color: var(--accent-primary);"></i>
+        </div>
+        <div class="ms-3">
+          <p class="mb-0 small text-muted">Active Sessions</p>
+          <h3 class="mb-0 fw-bold">{{ session_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div>
+      <i class="bi bi-shield-check me-2"></i>Session List
+    </div>
+    <span class="badge bg-success">{{ session_count }} active</span>
+  </div>
+  <div class="card-body p-0">
+    {% if active_sessions %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>IP Address</th>
+            <th>Last Login</th>
+            <th>Expires</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in active_sessions %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold me-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ session.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <span class="fw-medium">{{ session.username }}</span>
+                  {% if session.session_key == current_session_key %}
+                  <span class="badge bg-primary ms-2">Current</span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td><span class="badge bg-secondary">{{ session.role }}</span></td>
+            <td><code class="small">{{ session.ip_address }}</code></td>
+            <td>{{ session.last_login|date:"M d, H:i" }}</td>
+            <td>{{ session.expires|date:"M d, H:i" }}</td>
+            <td>
+              {% if session.session_key != current_session_key %}
+              <a href="{% url 'core:terminate_session' session.session_key %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Terminate this session?')">
+                <i class="bi bi-x-circle"></i>
+              </a>
+              {% else %}
+              <span class="text-muted small">Current session</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-people text-muted fs-1 mb-3 d-block"></i>
+      <p class="text-muted mb-0">No active sessions found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Security Info -->
+<div class="card mt-4">
+  <div class="card-header">
+    <i class="bi bi-info-circle me-2"></i>Security Information
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <h6 class="text-muted mb-3">Session Guidelines</h6>
+        <ul class="list-unstyled small">
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Sessions automatically expire after 2 weeks of inactivity</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>You can terminate any session except your own</li>
+          <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Use "Terminate All Others" for security sweeps</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6 class="text-muted mb-3">Best Practices</h6>
+        <ul class="list-unstyled small">
+          <li class="mb-2"><i class="bi bi-lightbulb text-warning me-2"></i>Terminate sessions from lost or stolen devices</li>
+          <li class="mb-2"><i class="bi bi-lightbulb text-warning me-2"></i>Review active sessions regularly</li>
+          <li class="mb-2"><i class="bi bi-lightbulb text-warning me-2"></i>Change password if you see unknown sessions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

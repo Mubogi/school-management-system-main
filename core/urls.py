@@ -43,6 +43,15 @@ urlpatterns = [
     path('dashboard/admin/assessments/', views.AdminAssessmentsView.as_view(), name='admin_assessments'),
     path('dashboard/admin/assignments/', views.AdminAssignmentsView.as_view(), name='admin_assignments'),
     path('dashboard/admin/fees/', views.AdminFeesView.as_view(), name='admin_fees'),
+    
+    # DATABASE MANAGEMENT & AUDIT
+    path('super-admin/database/', super_admin_views.DatabaseManagementView.as_view(), name='database_management'),
+    path('super-admin/backup/create/', super_admin_views.create_instant_backup, name='create_backup'),
+    path('super-admin/backup/download/<str:backup_name>/', super_admin_views.download_backup, name='download_backup'),
+    path('super-admin/sessions/', super_admin_views.SessionManagementView.as_view(), name='session_management'),
+    path('super-admin/sessions/terminate/<str:session_key>/', super_admin_views.terminate_session, name='terminate_session'),
+    path('super-admin/sessions/terminate-all/', super_admin_views.terminate_all_sessions, name='terminate_all_sessions'),
+    path('super-admin/audit/', super_admin_views.AuditLogView.as_view(), name='audit_log'),
 
     # HEAD TEACHER ROUTES
     path('head-teacher/students/', views.HeadTeacherStudentsView.as_view(), name='head_teacher_students'),
@@ -93,6 +102,7 @@ urlpatterns = [
     path('reports/notifications/', report_workflow_views.ReportNotificationsView.as_view(), name='report_notifications'),
     path('dos/promotion-rules/', report_workflow_views.PromotionRulesView.as_view(), name='promotion_rules'),
     path('dos/year-end-promotion/', report_workflow_views.YearEndPromotionView.as_view(), name='year_end_promotion'),
+    path('dos/bulk-promotion/', report_workflow_views.BulkStudentPromotionView.as_view(), name='bulk_promotion'),
 
     # PDFs
     path('pdf/report/<str:student_id>/', views.student_report_pdf, name='student_report_pdf'),

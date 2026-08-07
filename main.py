@@ -14,7 +14,10 @@ import sys
 import threading
 import webbrowser
 import logging
+import shutil
+import atexit
 from pathlib import Path
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -25,6 +28,47 @@ logger = logging.getLogger('SchoolManagementDesktop')
 
 # Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_sms.settings')
+
+
+def create_auto_backup():
+    """
+    Create an automatic database backup on app exit.
+    Called when the application closes.
+    """
+    try:
+        from django.conf import settings
+        
+        db_path = settings.DATABASES['default']['NAME']
+        
+        if not os.path.exists(db_path):
+            logger.warning("Database file not found, skipping backup")
+            return
+        
+        # Create backups directory
+        backup_dir = os.path.join(settings.BASE_DIR, 'backups')
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Create timestamped backup
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_name = f'auto_backup_{timestamp}.sqlite3'
+        backup_path = os.path.join(backup_dir, backup_name)
+        
+        # Copy database
+        shutil.copy2(db_path, backup_path)
+        
+        logger.info(f"Auto-backup created: {backup_name}")
+        
+        # Keep only last 5 auto backups to save space
+        import glob
+        auto_backups = sorted(glob.glob(os.path.join(backup_dir, 'auto_backup_*.sqlite3')))
+        while len(auto_backups) > 5:
+            oldest = auto_backups.pop(0)
+            os.remove(oldest)
+            logger.info(f"Removed old auto-backup: {os.path.basename(oldest)}")
+        
+    except Exception as e:
+        logger.error(f"Auto-backup failed: {e}")
+
 
 def start_django_server(host='127.0.0.1', port=8000):
     """
@@ -99,8 +143,18 @@ def main():
         action='store_true',
         help='Enable debug mode'
     )
+    parser.add_argument(
+        '--no-backup',
+        action='store_true',
+        help='Disable auto-backup on close'
+    )
     
     args = parser.parse_args()
+    
+    # Register auto-backup hook (unless disabled)
+    if not args.no_backup:
+        atexit.register(create_auto_backup)
+        logger.info("Auto-backup on close enabled")
     
     url = f"http://{args.host}:{args.port}"
     

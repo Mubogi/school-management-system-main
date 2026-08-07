@@ -1,0 +1,287 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Bulk Student Promotion{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">Bulk Student Promotion</h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">
+      Select students using checkboxes and perform bulk actions
+    </p>
+  </div>
+  <div>
+    <a href="{% url 'core:year_end_promotion' %}" class="btn btn-outline-primary">
+      <i class="bi bi-calendar-check me-2"></i>Year-End Promotion
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+  <!-- Actions Panel -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-lightning me-2"></i>Bulk Actions
+      </div>
+      <div class="card-body">
+        <form method="post" id="bulkActionForm">
+          {% csrf_token %}
+          
+          <div class="mb-3">
+            <label class="form-label">Action</label>
+            <select name="action" class="form-select" id="actionSelect" required>
+              <option value="">Select action...</option>
+              <option value="promote">Promote Students</option>
+              <option value="archive">Move to Archive</option>
+              <option value="graduate">Mark as Graduated</option>
+            </select>
+          </div>
+          
+          <!-- Promotion Options (shown when Promote is selected) -->
+          <div id="promoteOptions" style="display: none;">
+            <div class="mb-3">
+              <label class="form-label">Target Class</label>
+              <select name="target_class" class="form-select" id="targetClass">
+                <option value="">Select target class...</option>
+                {% for value, label in class_options %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Target Academic Year</label>
+              <select name="target_academic_year" class="form-select" id="targetYear">
+                <option value="{{ school.active_academic_year }}">{{ school.active_academic_year|default:"2026" }}</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Target Term</label>
+              <select name="target_term" class="form-select">
+                {% for value, label in term_options %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Selected Students</label>
+            <div class="form-control" style="height: 60px; overflow-y: auto;" id="selectedCount">
+              <span class="text-muted">No students selected</span>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100" id="submitBtn" disabled>
+            <i class="bi bi-check-circle me-2"></i>Apply Action
+          </button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <i class="bi bi-bar-chart me-2"></i>Quick Stats
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted">Total Students</span>
+          <span class="fw-semibold">{{ total_students }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Classes</span>
+          <span class="fw-semibold">{{ students_by_class|length }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Student List -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <i class="bi bi-people me-2"></i>Students by Class
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="selectAll">
+          <label class="form-check-label" for="selectAll">Select All</label>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        {% if students_by_class %}
+          {% for class_name, students in students_by_class.items %}
+          <div class="border-bottom" style="border-color: var(--border-color) !important;">
+            <div class="px-3 py-2" style="background: var(--bg-tertiary);">
+              <div class="form-check">
+                <input class="form-check-input class-checkbox" type="checkbox" 
+                       data-class="{{ class_name }}" id="class_{{ forloop.counter }}">
+                <label class="form-check-label fw-semibold" for="class_{{ forloop.counter }}">
+                  {{ class_name }} ({{ students|length }})
+                </label>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;"></th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Gender</th>
+                    <th>Guardian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for student in students %}
+                  <tr>
+                    <td>
+                      <input type="checkbox" name="student_ids" value="{{ student.id }}" 
+                             class="form-check-input student-checkbox"
+                             data-student="{{ student.student_id }}"
+                             data-class="{{ class_name }}">
+                    </td>
+                    <td><code>{{ student.student_id }}</code></td>
+                    <td class="fw-medium">{{ student.first_name }} {{ student.last_name }}</td>
+                    <td>{{ student.gender|default:"-" }}</td>
+                    <td>{{ student.guardian_name|default:"-" }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-people text-muted fs-1 mb-3 d-block"></i>
+            <p class="text-muted mb-0">No active students found.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const actionSelect = document.getElementById('actionSelect');
+  const promoteOptions = document.getElementById('promoteOptions');
+  const submitBtn = document.getElementById('submitBtn');
+  const selectedCount = document.getElementById('selectedCount');
+  const selectAll = document.getElementById('selectAll');
+  
+  // Action select change
+  actionSelect.addEventListener('change', function() {
+    const action = this.value;
+    
+    // Show/hide promote options
+    if (action === 'promote') {
+      promoteOptions.style.display = 'block';
+    } else {
+      promoteOptions.style.display = 'none';
+    }
+    
+    validateForm();
+  });
+  
+  // Student checkboxes
+  document.querySelectorAll('.student-checkbox').forEach(function(checkbox) {
+    checkbox.addEventListener('change', updateSelectedCount);
+  });
+  
+  // Class checkboxes
+  document.querySelectorAll('.class-checkbox').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      const className = this.dataset.class;
+      const isChecked = this.checked;
+      
+      document.querySelectorAll(`.student-checkbox[data-class="${className}"]`).forEach(function(cb) {
+        cb.checked = isChecked;
+      });
+      
+      updateSelectedCount();
+    });
+  });
+  
+  // Select all
+  selectAll.addEventListener('change', function() {
+    const isChecked = this.checked;
+    
+    document.querySelectorAll('.student-checkbox, .class-checkbox').forEach(function(cb) {
+      cb.checked = isChecked;
+    });
+    
+    updateSelectedCount();
+  });
+  
+  function updateSelectedCount() {
+    const selected = document.querySelectorAll('.student-checkbox:checked');
+    const count = selected.length;
+    
+    selectedCount.innerHTML = count > 0 
+      ? `<span class="fw-semibold text-primary">${count} student(s) selected</span>`
+      : '<span class="text-muted">No students selected</span>';
+    
+    validateForm();
+  }
+  
+  function validateForm() {
+    const action = actionSelect.value;
+    const selectedCount2 = document.querySelectorAll('.student-checkbox:checked').length;
+    const targetClass = document.getElementById('targetClass');
+    
+    let isValid = action && selectedCount2 > 0;
+    
+    if (action === 'promote') {
+      isValid = isValid && targetClass.value;
+    }
+    
+    submitBtn.disabled = !isValid;
+  }
+  
+  // Form submission
+  document.getElementById('bulkActionForm').addEventListener('submit', function(e) {
+    const action = actionSelect.value;
+    const selected = document.querySelectorAll('.student-checkbox:checked');
+    
+    if (selected.length === 0) {
+      e.preventDefault();
+      alert('Please select at least one student.');
+      return;
+    }
+    
+    if (action === 'promote' && !document.getElementById('targetClass').value) {
+      e.preventDefault();
+      alert('Please select a target class.');
+      return;
+    }
+    
+    const confirmMsg = action === 'promote' 
+      ? `Promote ${selected.length} student(s) to the selected class?`
+      : action === 'archive'
+      ? `Archive ${selected.length} student(s)?`
+      : `Mark ${selected.length} student(s) as graduated?`;
+    
+    if (!confirm(confirmMsg)) {
+      e.preventDefault();
+    }
+  });
+});
+</script>
+{% endblock %}

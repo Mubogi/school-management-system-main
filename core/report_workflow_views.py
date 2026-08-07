@@ -321,3 +321,157 @@ class YearEndPromotionView(RoleRequiredMixin, TemplateView):
             f'{unchanged} unchanged (no rule).',
         )
         return redirect('core:year_end_promotion')
+
+
+class BulkStudentPromotionView(RoleRequiredMixin, TemplateView):
+    """
+    Bulk promotion view with checkbox selection and dropdown-based class/term selection.
+    Allows promoting individual students, moving to archive, or graduating.
+    """
+    template_name = 'core/dos/bulk_promotion.html'
+    allowed_roles = ['DOS', 'SCHOOL_ADMIN', 'SUPER_ADMIN', 'HEAD_TEACHER']
+    
+    # Predefined class options for dropdowns
+    CLASS_OPTIONS = [
+        ('P.1', 'P.1'), ('P.2', 'P.2'), ('P.3', 'P.3'), ('P.4', 'P.4'),
+        ('P.5', 'P.5'), ('P.6', 'P.6'), ('P.7', 'P.7'),
+        ('S.1', 'S.1'), ('S.2', 'S.2'), ('S.3', 'S.3'), ('S.4', 'S.4'),
+        ('S.5', 'S.5'), ('S.6', 'S.6'),
+    ]
+    
+    # Predefined term options
+    TERM_OPTIONS = [
+        ('T1', 'Term 1'), ('T2', 'Term 2'), ('T3', 'Term 3'),
+        ('S1', 'Semester 1'), ('S2', 'Semester 2'),
+    ]
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        profile = get_profile(self.request.user)
+        school = get_user_school(profile) if profile else None
+        
+        ctx['user_role'] = profile.role if profile else ''
+        ctx['school'] = school
+        
+        # Get school classes for dropdown
+        if school:
+            existing_classes = SchoolClass.objects.filter(school=school).values_list('name', flat=True)
+            # Combine predefined with existing
+            all_classes = list(set(list(self.CLASS_OPTIONS) + [(c, c) for c in existing_classes]))
+            ctx['class_options'] = sorted(all_classes, key=lambda x: x[0])
+        else:
+            ctx['class_options'] = self.CLASS_OPTIONS
+        
+        ctx['term_options'] = self.TERM_OPTIONS
+        
+        # Get students for the school
+        if school:
+            from core.models import Student
+            students = Student.objects.filter(
+                school=school,
+                is_active=True
+            ).order_by('current_class', 'last_name')
+            
+            # Group students by class
+            from itertools import groupby
+            students_by_class = {}
+            for student in students:
+                class_name = student.current_class or 'Unassigned'
+                if class_name not in students_by_class:
+                    students_by_class[class_name] = []
+                students_by_class[class_name].append(student)
+            
+            ctx['students_by_class'] = students_by_class
+            ctx['total_students'] = students.count()
+        else:
+            ctx['students_by_class'] = {}
+            ctx['total_students'] = 0
+        
+        return ctx
+    
+    def post(self, request, *args, **kwargs):
+        profile = get_profile(request.user)
+        school = get_user_school(profile) if profile else None
+        
+        if not school:
+            messages.error(request, 'No school context found.')
+            return redirect('core:bulk_promotion')
+        
+        action = request.POST.get('action')
+        student_ids = request.POST.getlist('student_ids')
+        target_class = request.POST.get('target_class', '')
+        target_year = request.POST.get('target_academic_year', '')
+        target_term = request.POST.get('target_term', school.active_term or 'T1')
+        
+        from core.models import Student
+        from licensing.models import AuditLog
+        
+        promoted_count = 0
+        archived_count = 0
+        graduated_count = 0
+        
+        for student_id in student_ids:
+            try:
+                student = Student.objects.get(id=student_id, school=school)
+                old_class = student.current_class
+                
+                if action == 'promote':
+                    student.current_class = target_class
+                    student.save()
+                    promoted_count += 1
+                    
+                    # Log the action
+                    AuditLog.log(
+                        action='STUDENT_PROMOTE',
+                        user=request.user,
+                        target_type='Student',
+                        target_id=student.student_id,
+                        target_name=f"{student.first_name} {student.last_name}",
+                        description=f"Promoted from {old_class} to {target_class}",
+                        request=request,
+                        school=school,
+                    )
+                    
+                elif action == 'archive':
+                    student.is_active = False  # Deactivate instead of archiving
+                    student.save()
+                    archived_count += 1
+                    
+                    AuditLog.log(
+                        action='STUDENT_ARCHIVE',
+                        user=request.user,
+                        target_type='Student',
+                        target_id=student.student_id,
+                        target_name=f"{student.first_name} {student.last_name}",
+                        description="Student deactivated/archived",
+                        request=request,
+                        school=school,
+                    )
+                    
+                elif action == 'graduate':
+                    student.is_active = False  # Deactivate instead
+                    student.save()
+                    graduated_count += 1
+                    
+                    AuditLog.log(
+                        action='STUDENT_GRADUATE',
+                        user=request.user,
+                        target_type='Student',
+                        target_id=student.student_id,
+                        target_name=f"{student.first_name} {student.last_name}",
+                        description="Student graduated",
+                        request=request,
+                        school=school,
+                    )
+                    
+            except Student.DoesNotExist:
+                continue
+        
+        if promoted_count > 0:
+            messages.success(request, f'{promoted_count} student(s) promoted to {target_class}.')
+        if archived_count > 0:
+            messages.success(request, f'{archived_count} student(s) moved to archive.')
+        if graduated_count > 0:
+            messages.success(request, f'{graduated_count} student(s) marked as graduated.')
+        
+        return redirect('core:bulk_promotion')
