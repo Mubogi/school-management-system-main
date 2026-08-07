@@ -1,0 +1,224 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Marks Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">My Subject Assignments</h3>
+    {% if assignments %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for assignment in assignments %}
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <p class="font-semibold text-gray-900">{{ assignment.subject.name }}</p>
+        <p class="text-sm text-gray-600">Class {{ assignment.assigned_class }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500">No assignments yet. Contact the school admin to assign subjects.</p>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-lg shadow">
+    <div class="flex border-b border-gray-200">
+      <button type="button" onclick="showTab('enter')" id="enter-tab" class="flex-1 px-6 py-4 text-center font-medium text-blue-600 border-b-2 border-blue-600">Enter Marks</button>
+      <button type="button" onclick="showTab('view')" id="view-tab" class="flex-1 px-6 py-4 text-center font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">View Marks</button>
+    </div>
+  </div>
+
+  <div id="enter-tab-content" class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Enter Marks</h2>
+    <p class="text-sm text-gray-600 mb-6">Filter by class, subject, and assessment, then select the student and enter the score.</p>
+
+    <form method="post" action="{% url 'core:mark_entry' %}" class="space-y-6">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{% url 'core:subject_teacher_marks' %}">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Class</label>
+          <select id="entry-class" onchange="filterEntryStudents()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- All classes --</option>
+            {% for assignment in assignments %}
+            <option value="{{ assignment.assigned_class }}">{{ assignment.assigned_class }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Subject</label>
+          <select id="entry-subject" name="subject_id" required onchange="filterEntryStudents()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- Select subject --</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}">{{ subject.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Assessment</label>
+          <select id="entry-assessment" name="assessment_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- Select assessment --</option>
+            {% for assessment in assessments %}
+            <option value="{{ assessment.id }}">{{ assessment.name }} ({{ assessment.weight_percentage }}%)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Student</label>
+          <select id="entry-student" name="student_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">-- Select student --</option>
+            {% for student in students %}
+            <option value="{{ student.student_id }}" data-class="{{ student.current_class }}">{{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Score (0-100)</label>
+          <input type="number" name="score" min="0" max="100" step="0.01" placeholder="Enter score" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition">
+          Save Mark
+        </button>
+        <button type="reset" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium transition" onclick="filterEntryStudents()">
+          Clear
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="view-tab-content" class="hidden bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Student Marks</h2>
+
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Subject</label>
+        <select id="filter-subject" onchange="filterMarks()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">-- All Subjects --</option>
+          {% for subject in subjects %}
+          <option value="{{ subject.id }}">{{ subject.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Class</label>
+        <select id="filter-class" onchange="filterMarks()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">-- All Classes --</option>
+          {% for assignment in assignments %}
+          <option value="{{ assignment.assigned_class }}">{{ assignment.assigned_class }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Assessment</label>
+        <select id="filter-assessment" onchange="filterMarks()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">-- All Assessments --</option>
+          {% for assessment in assessments %}
+          <option value="{{ assessment.id }}">{{ assessment.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assessment</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Recorded</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% if recent_marks %}
+            {% for mark in recent_marks %}
+            <tr class="hover:bg-gray-50 mark-row" data-subject="{{ mark.subject.id }}" data-class="{{ mark.student.current_class }}" data-assessment="{{ mark.assessment_type.id }}">
+              <td class="px-6 py-4 font-medium text-gray-900">{{ mark.student.first_name }} {{ mark.student.last_name }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ mark.subject.name }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ mark.student.current_class }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ mark.assessment_type.name }}</td>
+              <td class="px-6 py-4 font-semibold text-blue-600">{{ mark.score_achieved }}</td>
+              <td class="px-6 py-4 text-gray-700">{{ mark.grade }}</td>
+              <td class="px-6 py-4 text-gray-500">{{ mark.recorded_at|date:"M d, Y" }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="7" class="px-6 py-4 text-center text-gray-500">No marks recorded yet.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const assignmentMap = {
+  {% for assignment in assignments %}
+  "{{ assignment.subject.id }}": "{{ assignment.assigned_class }}",
+  {% endfor %}
+};
+
+function showTab(tabName) {
+  document.getElementById('enter-tab-content').classList.add('hidden');
+  document.getElementById('view-tab-content').classList.add('hidden');
+  document.getElementById('enter-tab').classList.remove('border-blue-600', 'text-blue-600');
+  document.getElementById('enter-tab').classList.add('border-transparent', 'text-gray-500');
+  document.getElementById('view-tab').classList.remove('border-blue-600', 'text-blue-600');
+  document.getElementById('view-tab').classList.add('border-transparent', 'text-gray-500');
+  if (tabName === 'enter') {
+    document.getElementById('enter-tab-content').classList.remove('hidden');
+    document.getElementById('enter-tab').classList.add('border-blue-600', 'text-blue-600');
+  } else {
+    document.getElementById('view-tab-content').classList.remove('hidden');
+    document.getElementById('view-tab').classList.add('border-blue-600', 'text-blue-600');
+  }
+}
+
+function filterEntryStudents() {
+  const classFilter = document.getElementById('entry-class').value;
+  const subjectFilter = document.getElementById('entry-subject').value;
+  const subjectClass = assignmentMap[subjectFilter] || '';
+  const studentSelect = document.getElementById('entry-student');
+  const currentValue = studentSelect.value;
+
+  Array.from(studentSelect.options).forEach((option, index) => {
+    if (index === 0) return;
+    const studentClass = option.dataset.class;
+    const matchClass = !classFilter || studentClass === classFilter;
+    const matchSubjectClass = !subjectFilter || studentClass === subjectClass;
+    option.hidden = !(matchClass && matchSubjectClass);
+    option.disabled = option.hidden;
+  });
+
+  if (studentSelect.selectedOptions[0]?.disabled) {
+    studentSelect.value = '';
+  } else {
+    studentSelect.value = currentValue;
+  }
+
+  if (subjectFilter && subjectClass && !classFilter) {
+    document.getElementById('entry-class').value = subjectClass;
+  }
+}
+
+function filterMarks() {
+  const subjectFilter = document.getElementById('filter-subject').value;
+  const classFilter = document.getElementById('filter-class').value;
+  const assessmentFilter = document.getElementById('filter-assessment').value;
+  document.querySelectorAll('.mark-row').forEach(row => {
+    const matchSubject = !subjectFilter || row.dataset.subject === subjectFilter;
+    const matchClass = !classFilter || row.dataset.class === classFilter;
+    const matchAssessment = !assessmentFilter || row.dataset.assessment === assessmentFilter;
+    row.classList.toggle('hidden', !(matchSubject && matchClass && matchAssessment));
+  });
+}
+</script>
+{% endblock %}

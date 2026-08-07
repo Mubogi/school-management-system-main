@@ -1,0 +1,245 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Email Message Queue{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+            <i class="bi bi-envelope me-2" style="color: var(--accent-primary);"></i>
+            Email Message Queue
+        </h1>
+        <p class="mb-0 small" style="color: var(--text-secondary);">
+            Send individual emails to parents (BCC mode - no recipient visibility)
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'core:home' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Email Composer -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-pen me-2"></i>Compose Email
+    </div>
+    <div class="card-body">
+        <form method="post" id="emailForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send_emails">
+            
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Email Subject</label>
+                    <input type="text" name="subject" class="form-control" 
+                           placeholder="e.g., Report Card - {{ student_name }} - {{ term }}"
+                           value="Report Card from {{ school.school_name }}">
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">Use Template</label>
+                    <select name="template_id" class="form-select">
+                        <option value="">-- No Template --</option>
+                        {% for template in templates %}
+                        <option value="{{ template.id }}">{{ template.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label">
+                        Email Count
+                        <span class="badge bg-secondary ms-2">{{ total_with_email }} with email</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-people"></i>
+                        </span>
+                        <input type="text" class="form-control" readonly 
+                               value="Select students on the right">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3 mt-3">
+                <label class="form-label">Email Body</label>
+                <textarea name="message" class="form-control" rows="8" 
+                          placeholder="Enter your email body here...
+
+Available variables:
+{student_name} - Student's full name
+{guardian_name} - Parent/guardian name
+{class_name} - Current class
+{student_id} - Student ID
+{school_name} - School name
+{term} - Current term
+{academic_year} - Current academic year"></textarea>
+                <div class="form-text">
+                    This message will be sent individually to each selected parent.
+                    Variables will be replaced per student.
+                </div>
+            </div>
+            
+            <!-- Student Selection -->
+            <div class="mb-3">
+                <label class="form-label">
+                    Select Students to Receive Email
+                </label>
+                
+                <!-- Quick Select -->
+                <div class="mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleAllStudents()">
+                        <i class="bi bi-check-all me-1"></i>Select All
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllStudents()">
+                        <i class="bi bi-x-lg me-1"></i>Deselect All
+                    </button>
+                </div>
+                
+                <!-- Students by Class -->
+                {% for class_name, students in students_by_class.items %}
+                <div class="card bg-light mb-2">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-book me-2"></i>{{ class_name }}
+                            <span class="badge bg-secondary ms-1">{{ students|length }}</span>
+                        </span>
+                        <button type="button" class="btn btn-sm btn-link p-0" onclick="toggleClassStudents('{{ class_name }}')">
+                            Select All in Class
+                        </button>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row g-2">
+                            {% for student in students %}
+                            <div class="col-6 col-md-4 col-lg-3">
+                                <div class="form-check">
+                                    <input class="form-check-input student-checkbox" 
+                                           type="checkbox" 
+                                           name="student_ids" 
+                                           value="{{ student.id }}" 
+                                           id="student{{ student.id }}"
+                                           data-class="{{ class_name }}">
+                                    <label class="form-check-label w-100 small" for="student{{ student.id }}">
+                                        <span class="fw-medium">{{ student.first_name|slice:":12" }}</span>
+                                        <span class="text-muted d-block" style="font-size: 0.7rem;" 
+                                              title="{{ student.guardian_email }}">
+                                            {{ student.guardian_email|slice:":20" }}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Warning -->
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Privacy Notice:</strong> Each email is sent individually (BCC) so parents 
+                cannot see other recipients' email addresses.
+            </div>
+            
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" id="sendBtn">
+                    <i class="bi bi-send me-2"></i>
+                    Send Individual Emails
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SMTP Settings Info -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-gear me-2"></i>SMTP Configuration
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Current Settings</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="bi bi-server me-2 text-muted"></i>
+                        <strong>Host:</strong> {{ settings.EMAIL_HOST|default:"smtp.gmail.com" }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-plug me-2 text-muted"></i>
+                        <strong>Port:</strong> {{ settings.EMAIL_PORT|default:"587" }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-lock me-2 text-muted"></i>
+                        <strong>Encryption:</strong> TLS
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-muted mb-3">Quick Setup for Gmail</h6>
+                <ol class="small">
+                    <li>Enable 2-Factor Authentication on your Google account</li>
+                    <li>Go to <strong>Security</strong> → <strong>App passwords</strong></li>
+                    <li>Generate a new app password for "Mail"</li>
+                    <li>Set <code>EMAIL_HOST_PASSWORD</code> to this password</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAllStudents() {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAllStudents() {
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+}
+
+function toggleClassStudents(className) {
+    const checkboxes = document.querySelectorAll(`.student-checkbox[data-class="${className}"]`);
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+}
+
+document.getElementById('emailForm')?.addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.student-checkbox:checked').length;
+    
+    if (checked === 0) {
+        e.preventDefault();
+        alert('Please select at least one student.');
+        return;
+    }
+    
+    if (checked > 100) {
+        if (!confirm(`You are about to send ${checked} emails. This may take a few minutes. Continue?`)) {
+            e.preventDefault();
+            return;
+        }
+    }
+    
+    // Show loading state
+    const btn = document.getElementById('sendBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,395 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 1.2cm; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+    
+    .report-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    
+    .report-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: white;
+      padding: 6px 20px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    
+    .report-term {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .report-term strong {
+      color: #475569;
+    }
+    
+    .student-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      border: 1px solid #e2e8f0;
+      display: table;
+      width: 100%;
+    }
+    
+    .student-info {
+      display: table-cell;
+      width: 50%;
+      vertical-align: top;
+    }
+    
+    .student-info .name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    
+    .student-info .details {
+      font-size: 10px;
+      color: #64748b;
+    }
+    
+    .student-info .details span {
+      display: inline-block;
+      margin-right: 12px;
+    }
+    
+    .class-position {
+      display: table-cell;
+      width: 50%;
+      vertical-align: middle;
+      text-align: right;
+    }
+    
+    .position-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .position-badge .label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.9;
+    }
+    
+    .position-badge .value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    
+    .marks-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .marks-table thead {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    }
+    
+    .marks-table th {
+      color: white;
+      padding: 10px 8px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .marks-table td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      background: white;
+    }
+    
+    .marks-table tbody tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+    
+    .marks-table tbody tr:hover td {
+      background: #f0f9ff;
+    }
+    
+    .grade-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    
+    .grade-d1, .grade-a { background: #dcfce7; color: #166534; }
+    .grade-d2, .grade-b { background: #dbeafe; color: #1e40af; }
+    .grade-c3, .grade-c { background: #fef9c3; color: #854d0e; }
+    .grade-c4, .grade-d { background: #fed7aa; color: #9a3412; }
+    .grade-p7, .grade-e { background: #fce7f3; color: #9d174d; }
+    .grade-p8, .grade-f9 { background: #fee2e2; color: #991b1b; }
+    
+    .summary-grid {
+      display: table;
+      width: 100%;
+      margin: 14px 0;
+      gap: 12px;
+    }
+    
+    .summary-card {
+      display: table-cell;
+      width: 50%;
+      padding: 14px;
+      border-radius: 10px;
+      background: white;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .summary-card:first-child {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-color: #93c5fd;
+    }
+    
+    .summary-card:last-child {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border-color: #86efac;
+    }
+    
+    .summary-card .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    
+    .summary-card:first-child .label { color: #3b82f6; }
+    .summary-card:last-child .label { color: #10b981; }
+    
+    .summary-card .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    
+    .attendance-detail {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    
+    .remarks-section {
+      margin-top: 16px;
+    }
+    
+    .remark-box {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-left: 4px solid #6366f1;
+    }
+    
+    .remark-box.teacher {
+      border-left-color: #10b981;
+    }
+    
+    .remark-box.head {
+      border-left-color: #f59e0b;
+    }
+    
+    .remark-box .title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .remark-box .title::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    
+    .remark-box .text {
+      font-size: 11px;
+      color: #334155;
+      line-height: 1.6;
+      text-align: justify;
+    }
+    
+    .signatures {
+      margin-top: 24px;
+      display: table;
+      width: 100%;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    
+    .sig {
+      display: table-cell;
+      width: 50%;
+      text-align: center;
+    }
+    
+    .sig:first-child { border-right: 1px dashed #cbd5e1; }
+    
+    .sig-stamp {
+      width: 80px;
+      height: 40px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      margin: 0 auto 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #94a3b8;
+    }
+    
+    .sig-line {
+      width: 60%;
+      margin: 0 auto;
+      border-top: 1px solid #374151;
+      padding-top: 4px;
+      font-size: 10px;
+      color: #475569;
+    }
+    
+    .page-break { page-break-after: always; }
+    
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 2px solid #f1f5f9;
+      font-size: 9px;
+      color: #94a3b8;
+      text-align: center;
+    }
+    
+    .footer .system {
+      color: #6366f1;
+      font-weight: 600;
+    }
+  </style>
+  <title>{{ report_title }}</title>
+</head>
+<body>
+  {% include "core/pdf/letterhead.html" %}
+  
+  <div class="report-header">
+    <div class="report-badge">{{ report_title }}</div>
+    <div class="report-term">Academic Year: <strong>{{ academic_year }}</strong> &nbsp;|&nbsp; Term: <strong>{{ term }}</strong></div>
+  </div>
+
+  <div class="student-card">
+    <div class="student-info">
+      <div class="name">{{ student.first_name }} {{ student.last_name }}</div>
+      <div class="details">
+        <span>📋 {{ student.student_id }}</span>
+        <span>🏫 {{ student.current_class }}</span>
+        <span>⚥ {{ student.get_gender_display }}</span>
+      </div>
+    </div>
+    {% if class_position %}
+    <div class="class-position">
+      <div class="position-badge">
+        <div class="label">Class Position</div>
+        <div class="value">{{ class_position }} / {{ class_size }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <table class="marks-table">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Assessment Details</th>
+        <th>Avg Score</th>
+        <th>Weighted</th>
+        <th>Grade</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in subjects %}
+      <tr>
+        <td><strong>{{ item.subject.name }}</strong></td>
+        <td>
+          {% for a in item.assessments %}
+            {{ a.name }}: {{ a.score }} ({{ a.grade }}){% if not forloop.last %}; {% endif %}
+          {% empty %}—{% endfor %}
+        </td>
+        <td>{{ item.average_raw }}</td>
+        <td>{{ item.weighted }}</td>
+        <td><span class="grade-badge grade-{{ item.grade }}">{{ item.grade }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;">No marks recorded for this report period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="label">Final Average (Weighted)</div>
+      <div class="value">{{ overall_average }}%</div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Overall Grade: <strong>{{ overall_grade }}</strong></div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Attendance</div>
+      <div class="value">{{ attendance_percent }}%</div>
+      <div class="attendance-detail">{{ days_present }} / {{ total_school_days }} days present ({{ days_absent }} absent) &nbsp;|&nbsp; Conduct: {{ conduct_rating }}</div>
+    </div>
+  </div>
+
+  <div class="remarks-section">
+    <div class="remark-box teacher">
+      <div class="title">Class Teacher's Remarks</div>
+      <div class="text">{{ class_teacher_remark }}</div>
+    </div>
+    <div class="remark-box head">
+      <div class="title">Head Teacher's Remarks</div>
+      <div class="text">{{ head_teacher_remark }}</div>
+    </div>
+  </div>
+
+  <div class="signatures">
+    <div class="sig">
+      <div class="sig-stamp">OFFICIAL STAMP</div>
+      <div class="sig-line">Class Teacher's Signature</div>
+    </div>
+    <div class="sig">
+      <div class="sig-stamp">OFFICIAL STAMP</div>
+      <div class="sig-line">Head Teacher's Signature</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="system">School Management System</span> — {{ school.school_name }}<br>
+    Generated on {% now "F j, Y" %} | Page 1 of 1
+  </div>
+</body>
+</html>

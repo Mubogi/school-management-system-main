@@ -1,0 +1,286 @@
+{% load feature_tags %}
+
+{% block sidebar %}
+<aside class="sidebar">
+  <style>
+    .sidebar .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      margin: 0.25rem 0.75rem;
+      border-radius: 10px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+    
+    .sidebar .nav-link:hover {
+      background: var(--bg-tertiary);
+      color: var(--accent-primary);
+    }
+    
+    .sidebar .nav-link.active {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+    }
+    
+    .sidebar .nav-link i {
+      width: 24px;
+      font-size: 1.1rem;
+    }
+    
+    .sidebar .nav-section-title {
+      padding: 1rem 1.5rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+  </style>
+  
+  {% if user_role == "SUPER_ADMIN" or user_role == "SCHOOL_ADMIN" %}
+    <div class="nav-section-title">Management</div>
+    <a href="{% url 'core:super_admin_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:admin_schools' %}" class="nav-link">
+      <i class="bi bi-building"></i>
+      <span class="ms-3">School Settings</span>
+    </a>
+    <a href="{% url 'core:admin_staff' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">Staff</span>
+    </a>
+    
+    <div class="nav-section-title">Academic</div>
+    <a href="{% url 'core:admin_classes' %}" class="nav-link">
+      <i class="bi bi-collection"></i>
+      <span class="ms-3">Classes</span>
+    </a>
+    <a href="{% url 'core:admin_subjects' %}" class="nav-link">
+      <i class="bi bi-book"></i>
+      <span class="ms-3">Subjects</span>
+    </a>
+    <a href="{% url 'core:admin_assessments' %}" class="nav-link">
+      <i class="bi bi-clipboard-check"></i>
+      <span class="ms-3">Assessments</span>
+    </a>
+    
+    <div class="nav-section-title">Finance</div>
+    <a href="{% url 'core:admin_fees' %}" class="nav-link">
+      <i class="bi bi-currency-dollar"></i>
+      <span class="ms-3">Fee Structures</span>
+    </a>
+    
+    {% if user_role == "SUPER_ADMIN" %}
+    <div class="nav-section-title">All Dashboards</div>
+    <a href="{% url 'core:head_teacher_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="ms-3">Head Teacher</span>
+    </a>
+    <a href="{% url 'core:dos_reports' %}" class="nav-link">
+      <i class="bi bi-bar-chart"></i>
+      <span class="ms-3">Director of Studies</span>
+    </a>
+    <a href="{% url 'core:bursar_dashboard' %}" class="nav-link">
+      <i class="bi bi-wallet2"></i>
+      <span class="ms-3">Bursar</span>
+    </a>
+    <a href="{% url 'core:secretary_dashboard' %}" class="nav-link">
+      <i class="bi bi-person-badge"></i>
+      <span class="ms-3">Secretary</span>
+    </a>
+    
+    <div class="nav-section-title">System Control</div>
+    <a href="{% url 'core:super_admin_control' %}" class="nav-link">
+      <i class="bi bi-shield-check"></i>
+      <span class="ms-3">Control Panel</span>
+    </a>
+    <a href="{% url 'core:promotion_rules' %}" class="nav-link">
+      <i class="bi bi-arrow-up-circle"></i>
+      <span class="ms-3">Promotion Rules</span>
+    </a>
+    <a href="{% url 'core:year_end_promotion' %}" class="nav-link">
+      <i class="bi bi-calendar-check"></i>
+      <span class="ms-3">Year-End Promotion</span>
+    </a>
+    {% endif %}
+    
+  {% elif user_role == "HEAD_TEACHER" %}
+    <div class="nav-section-title">Academic</div>
+    <a href="{% url 'core:head_teacher_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:head_teacher_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">All Students</span>
+    </a>
+    <a href="{% url 'core:head_teacher_classes' %}" class="nav-link">
+      <i class="bi bi-collection"></i>
+      <span class="ms-3">Classes</span>
+    </a>
+    
+    <div class="nav-section-title">Reports</div>
+    <a href="{% url 'core:head_teacher_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="ms-3">Academic Reports</span>
+    </a>
+    <a href="{% url 'core:head_teacher_publish' %}" class="nav-link">
+      <i class="bi bi-lock"></i>
+      <span class="ms-3">Publish & Lock</span>
+    </a>
+    
+  {% elif user_role == "CLASS_TEACHER" %}
+    <div class="nav-section-title">My Class</div>
+    <a href="{% url 'core:class_teacher_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:class_teacher_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">My Students</span>
+    </a>
+    <a href="{% url 'core:termly_return_checker' %}" class="nav-link">
+      <i class="bi bi-arrow-return-left"></i>
+      <span class="ms-3">Termly Return</span>
+    </a>
+    <a href="{% url 'core:class_teacher_remarks' %}" class="nav-link">
+      <i class="bi bi-chat-left-text"></i>
+      <span class="ms-3">Conduct Remarks</span>
+    </a>
+    
+    <div class="nav-section-title">Marks</div>
+    <a href="{% url 'core:class_teacher_marks' %}" class="nav-link">
+      <i class="bi bi-pencil-square"></i>
+      <span class="ms-3">Enter Marks</span>
+    </a>
+    <a href="{% url 'core:class_teacher_performance' %}" class="nav-link">
+      <i class="bi bi-graph-up"></i>
+      <span class="ms-3">Performance</span>
+    </a>
+    
+  {% elif user_role == "SUBJECT_TEACHER" %}
+    <div class="nav-section-title">My Subjects</div>
+    <a href="{% url 'core:subject_teacher_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:subject_teacher_marks' %}" class="nav-link">
+      <i class="bi bi-pencil-square"></i>
+      <span class="ms-3">Enter Marks</span>
+    </a>
+    
+  {% elif user_role == "BURSAR" %}
+    <div class="nav-section-title">Finance</div>
+    <a href="{% url 'core:bursar_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:bursar_fees' %}" class="nav-link">
+      <i class="bi bi-list-ul"></i>
+      <span class="ms-3">Fee Structures</span>
+    </a>
+    <a href="{% url 'core:bursar_payments' %}" class="nav-link">
+      <i class="bi bi-credit-card"></i>
+      <span class="ms-3">Payments</span>
+    </a>
+    <a href="{% url 'core:bursar_receipts' %}" class="nav-link">
+      <i class="bi bi-receipt"></i>
+      <span class="ms-3">Receipts</span>
+    </a>
+    <a href="{% url 'core:bursar_balances' %}" class="nav-link">
+      <i class="bi bi-scales"></i>
+      <span class="ms-3">Balances</span>
+    </a>
+    <a href="{% url 'core:bursar_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-bar-graph"></i>
+      <span class="ms-3">Reports</span>
+    </a>
+    
+  {% elif user_role == "SECRETARY" %}
+    <div class="nav-section-title">Students</div>
+    <a href="{% url 'core:secretary_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:secretary_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">All Students</span>
+    </a>
+    <a href="{% url 'core:secretary_enroll' %}" class="nav-link">
+      <i class="bi bi-person-plus"></i>
+      <span class="ms-3">Enroll Student</span>
+    </a>
+    
+  {% elif user_role == "DOS" %}
+    <div class="nav-section-title">Academic</div>
+    <a href="{% url 'core:dos_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:dos_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">Students</span>
+    </a>
+    <a href="{% url 'core:dos_classes' %}" class="nav-link">
+      <i class="bi bi-collection"></i>
+      <span class="ms-3">Classes</span>
+    </a>
+    <a href="{% url 'core:dos_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="ms-3">Reports</span>
+    </a>
+    
+  {% else %}
+    <div class="nav-section-title">Quick Links</div>
+    <a href="/" class="nav-link">
+      <i class="bi bi-house"></i>
+      <span class="ms-3">Home</span>
+    </a>
+    <a href="{% url 'core:search_students' %}" class="nav-link">
+      <i class="bi bi-search"></i>
+      <span class="ms-3">Search Students</span>
+    </a>
+  {% endif %}
+  
+  <div class="nav-section-title">Communication</div>
+  <a href="{% url 'notifications:whatsapp_queue' %}" class="nav-link">
+    <i class="bi bi-whatsapp" style="color: #25D366;"></i>
+    <span class="ms-3">WhatsApp Queue</span>
+  </a>
+  <a href="{% url 'notifications:email_queue' %}" class="nav-link">
+    <i class="bi bi-envelope"></i>
+    <span class="ms-3">Email Queue</span>
+  </a>
+  <a href="{% url 'notifications:templates' %}" class="nav-link">
+    <i class="bi bi-file-text"></i>
+    <span class="ms-3">Templates</span>
+  </a>
+  
+  <div class="nav-section-title">System</div>
+  <a href="{% url 'core:qr_connect' %}" class="nav-link">
+    <i class="bi bi-qr-code"></i>
+    <span class="ms-3">QR Connect</span>
+  </a>
+  
+  {% if user.is_superuser %}
+  <div class="nav-section-title">Master Vendor</div>
+  <a href="{% url 'core:master_vendor_dashboard' %}" class="nav-link">
+    <i class="bi bi-shield-check" style="color: #dc3545;"></i>
+    <span class="ms-3">Vendor Dashboard</span>
+  </a>
+  <a href="{% url 'core:vendor_license_status' %}" class="nav-link">
+    <i class="bi bi-key"></i>
+    <span class="ms-3">License Status</span>
+  </a>
+  <a href="{% url 'licensing:management' %}" class="nav-link">
+    <i class="bi bi-shield-lock"></i>
+    <span class="ms-3">License Manage</span>
+  </a>
+  {% endif %}
+</aside>
+{% endblock %}

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html data-theme="light" lang="en">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}School Management System{% endblock %}</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      /* Light Theme - 60-30-10 with Slate/Indigo */
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --border-color: #e2e8f0;
+      --accent-primary: #6366f1;
+      --accent-secondary: #818cf8;
+      --accent-hover: #4f46e5;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --sidebar-width: 260px;
+      --header-height: 64px;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --border-color: #334155;
+      --accent-primary: #818cf8;
+      --accent-secondary: #6366f1;
+      --accent-hover: #a5b4fc;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    }
+    
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+    
+    /* Modern Card Styling */
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    
+    .card-header {
+      background: transparent;
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.25rem 1.5rem;
+      font-weight: 600;
+    }
+    
+    .card-body {
+      padding: 1.5rem;
+    }
+    
+    /* Modern Button Styles */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      border: none;
+      font-weight: 500;
+      padding: 0.5rem 1.25rem;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-primary) 100%);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-outline-primary {
+      color: var(--accent-primary);
+      border-color: var(--accent-primary);
+      border-radius: 10px;
+      font-weight: 500;
+    }
+    
+    .btn-outline-primary:hover {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-primary);
+      border-radius: 10px;
+    }
+    
+    /* Form Modernization */
+    .form-control, .form-select {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.625rem 0.875rem;
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+    
+    .form-label {
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    /* Table Modernization */
+    .table {
+      color: var(--text-primary);
+      margin-bottom: 0;
+    }
+    
+    .table thead th {
+      background: var(--bg-tertiary);
+      border-bottom: 2px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      padding: 1rem;
+    }
+    
+    .table tbody td {
+      padding: 1rem;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .table tbody tr {
+      transition: background 0.15s ease;
+    }
+    
+    .table tbody tr:hover {
+      background: var(--bg-tertiary);
+    }
+    
+    /* Badge Styles */
+    .badge {
+      font-weight: 500;
+      padding: 0.4em 0.75em;
+      border-radius: 6px;
+    }
+    
+    /* Navigation */
+    .navbar {
+      background: var(--bg-secondary) !important;
+      border-bottom: 1px solid var(--border-color);
+      height: var(--header-height);
+      padding: 0 1.5rem;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: var(--text-primary) !important;
+    }
+    
+    /* Layout */
+    .sidebar {
+      position: fixed;
+      top: var(--header-height);
+      left: 0;
+      width: var(--sidebar-width);
+      height: calc(100vh - var(--header-height));
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      padding: 1rem 0;
+      z-index: 100;
+    }
+    
+    .main-content {
+      margin-left: var(--sidebar-width);
+      margin-top: var(--header-height);
+      padding: 2rem;
+      min-height: calc(100vh - var(--header-height));
+    }
+    
+    /* Stat Cards */
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    
+    /* Theme Toggle */
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-secondary);
+    }
+    
+    .theme-toggle:hover {
+      background: var(--accent-primary);
+      color: white;
+    }
+    
+    /* Alert Styles */
+    .alert {
+      border-radius: 12px;
+      border: none;
+      padding: 1rem 1.25rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 991.98px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.show {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 1rem;
+      }
+    }
+  </style>
+  
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand d-flex align-items-center" href="/">
+        <img src="{% static 'core/icon-192.png' %}" alt="Logo" width="36" height="36" class="me-2 rounded-lg">
+        <span class="d-none d-md-inline">{% if school %}{{ school.school_name }}{% else %}School Management{% endif %}</span>
+      </a>
+      
+      <div class="d-flex align-items-center gap-3">
+        <!-- Theme Toggle -->
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+          <i class="bi bi-brightness-high" id="themeIcon"></i>
+        </button>
+        
+        {% if user.is_authenticated %}
+          <div class="dropdown">
+            <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+              <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold" style="width:36px;height:36px;">
+                {{ user.username|slice:":1"|upper }}
+              </div>
+              <span class="d-none d-md-inline" style="color: var(--text-primary);">{{ user.username }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{% url 'core:profile' %}"><i class="bi bi-person me-2"></i>Profile</a></li>
+              <li><a class="dropdown-item" href="{% url 'licensing:management' %}"><i class="bi bi-shield me-2"></i>License</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form method="post" action="{% url 'core:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <a href="{% url 'core:login' %}" class="btn btn-primary btn-sm">Login</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+  
+  <div class="d-flex">
+    <!-- Sidebar -->
+    {% block sidebar %}
+      {% include 'core/layout/sidebar_nav.html' %}
+    {% endblock %}
+    
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+      
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Theme Toggle Script -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      updateThemeIcon(savedTheme);
+    })();
+    
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    }
+    
+    function updateThemeIcon(theme) {
+      const icon = document.getElementById('themeIcon');
+      if (icon) {
+        icon.className = theme === 'light' ? 'bi bi-moon' : 'bi bi-brightness-high';
+      }
+    }
+  </script>
+</body>
+</html>

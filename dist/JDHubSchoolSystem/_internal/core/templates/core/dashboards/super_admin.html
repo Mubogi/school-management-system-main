@@ -1,0 +1,166 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  <!-- Stats Cards -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">School</p>
+        <p class="text-xl font-bold text-gray-900">{{ school.school_name|default:"Not configured" }}</p>
+      </div>
+      <i class="fas fa-school text-4xl text-blue-200"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Total Staff</p>
+        <p class="text-3xl font-bold text-gray-900">{{ staff_users.count }}</p>
+      </div>
+      <i class="fas fa-users text-4xl text-green-200"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Total Students</p>
+        <p class="text-3xl font-bold text-gray-900">{{ students.count }}</p>
+      </div>
+      <i class="fas fa-graduation-cap text-4xl text-yellow-200"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Total Classes</p>
+        <p class="text-3xl font-bold text-gray-900">{{ classes.count }}</p>
+      </div>
+      <i class="fas fa-layer-group text-4xl text-purple-200"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Recent Students -->
+  <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Students</h3>
+    <div class="overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Enrolled</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for student in students %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ student.student_id }}</td>
+            <td class="px-6 py-4 text-sm text-gray-700">{{ student.first_name }} {{ student.last_name }}</td>
+            <td class="px-6 py-4 text-sm text-gray-700">{{ student.current_class }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ student.enrollment_date|date:"M d, Y" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+    <div class="space-y-3">
+      <a href="{% url 'core:admin_staff' %}" class="block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-center text-sm font-medium">
+        <i class="fas fa-user-plus mr-2"></i>Add Staff
+      </a>
+      <a href="{% url 'core:admin_classes' %}" class="block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-center text-sm font-medium">
+        <i class="fas fa-layer-group mr-2"></i>Add Class
+      </a>
+      <a href="{% url 'core:admin_subjects' %}" class="block px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 text-center text-sm font-medium">
+        <i class="fas fa-book mr-2"></i>Add Subject
+      </a>
+      <a href="{% url 'core:admin_fees' %}" class="block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-center text-sm font-medium">
+        <i class="fas fa-money-bill-wave mr-2"></i>Fee Structures
+      </a>
+      <a href="{% url 'core:promotion_rules' %}" class="block px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 text-center text-sm font-medium">
+        <i class="fas fa-arrow-up mr-2"></i>Promotion Rules
+      </a>
+      <a href="{% url 'core:super_admin_control' %}" class="block px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center text-sm font-medium">
+        <i class="fas fa-shield-alt mr-2"></i>System Control
+      </a>
+      <a href="{% url 'core:admin_schools' %}" class="block px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800 text-center text-sm font-medium">
+        <i class="fas fa-cog mr-2"></i>School Settings
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if selected_school and promotion_criteria_form %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Promotion Criteria (Pass Mark)</h3>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_promotion_criteria">
+      <div>
+        <label class="text-sm font-medium">Minimum average (%)</label>
+        {{ promotion_criteria_form.minimum_average }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">Minimum attendance (%)</label>
+        {{ promotion_criteria_form.minimum_attendance_percent }}
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        {{ promotion_criteria_form.require_fees_cleared }} Require fees cleared
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        {{ promotion_criteria_form.auto_promote_on_year_end }} Auto-skip students below pass mark on promotion
+      </label>
+      <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700">Save Criteria</button>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Load New Term</h3>
+    <p class="text-sm text-gray-600 mb-3">Archives {{ selected_school.active_term }}/{{ selected_school.active_academic_year }} and advances the school. Previous records stay intact.</p>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="load_new_term">
+      <div>
+        <label class="text-sm font-medium">New term</label>
+        {{ load_term_form.new_term }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">New academic year</label>
+        {{ load_term_form.new_academic_year }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">Archive notes</label>
+        {{ load_term_form.archive_notes }}
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        {{ load_term_form.reports_were_published }} Reports were published for archived term
+      </label>
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700" onclick="return confirm('Archive current term and load new term?')">Load New Term</button>
+    </form>
+    {% if term_archives %}
+    <h4 class="text-sm font-semibold mt-4 mb-2">Archived Terms</h4>
+    <ul class="text-sm text-gray-600 space-y-1">
+      {% for arc in term_archives %}
+      <li>{{ arc.term }}/{{ arc.academic_year }} — {{ arc.closed_at|date:"M d, Y" }}{% if arc.reports_published %} (published){% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

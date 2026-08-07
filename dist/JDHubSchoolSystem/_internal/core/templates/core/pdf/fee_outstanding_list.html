@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 1.2cm; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+    
+    .report-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    
+    .report-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      padding: 8px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    
+    .report-meta {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 8px;
+    }
+    
+    .total-outstanding {
+      display: inline-block;
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border: 2px solid #fecaca;
+      border-radius: 12px;
+      padding: 12px 24px;
+      margin-top: 12px;
+    }
+    
+    .total-outstanding .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #dc2626;
+    }
+    
+    .total-outstanding .value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #991b1b;
+    }
+    
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    thead { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+    th { color: white; padding: 12px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { border: 1px solid #e2e8f0; padding: 10px 12px; background: white; }
+    tbody tr:nth-child(even) td { background: #fef2f2; }
+    tbody tr:hover td { background: #fee2e2; }
+    
+    .row-number {
+      background: #fee2e2;
+      color: #991b1b;
+      font-weight: 700;
+      width: 40px;
+      text-align: center;
+    }
+    
+    .balance { color: #dc2626; font-weight: 700; }
+    
+    .action-note {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 20px;
+      border: 1px solid #fcd34d;
+    }
+    
+    .action-note .title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .action-note .text {
+      font-size: 11px;
+      color: #78350f;
+    }
+    
+    .footer {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 2px solid #f1f5f9;
+      font-size: 9px;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+  <title>Outstanding Fees</title>
+</head>
+<body>
+  {% include "core/pdf/letterhead.html" %}
+  
+  <div class="report-header">
+    <div class="report-badge">⚠️ Students With Outstanding Fees</div>
+    <div class="report-meta">Term: <strong>{{ term }}</strong> | Academic Year: <strong>{{ academic_year }}</strong></div>
+    <div class="total-outstanding">
+      <div class="label">Total Outstanding Balance</div>
+      <div class="value">Ushs {{ total_outstanding }}</div>
+    </div>
+  </div>
+  
+  <table>
+    <thead>
+      <tr><th class="row-number">#</th><th>Student ID</th><th>Name</th><th>Class</th><th>Guardian Phone</th><th>Balance (Ushs)</th></tr>
+    </thead>
+    <tbody>
+      {% for entry in outstanding %}
+      <tr>
+        <td class="row-number">{{ forloop.counter }}</td>
+        <td><strong>{{ entry.student.student_id }}</strong></td>
+        <td>{{ entry.student.first_name }} {{ entry.student.last_name }}</td>
+        <td>{{ entry.student.current_class }}</td>
+        <td>{{ entry.student.guardian_phone|default:"—" }}</td>
+        <td class="balance">{{ entry.balance }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;">All students have cleared fees. 🎉</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <div class="action-note">
+    <div class="title">📝 Note</div>
+    <div class="text">Demand letters can be generated individually from the Student Balances page for each student with outstanding fees.</div>
+  </div>
+  
+  <div class="footer">
+    School Management System — {{ school.school_name }} | Generated on {% now "F j, Y" %}
+  </div>
+</body>
+</html>

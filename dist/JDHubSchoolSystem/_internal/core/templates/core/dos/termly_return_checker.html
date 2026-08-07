@@ -1,0 +1,317 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Termly Return Checker{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-clipboard-check me-2" style="color: var(--accent-primary);"></i>
+      Termly Return Checker
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">
+      Track student returns for {{ current_term }}/{{ current_year }}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:dos_dashboard' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Back
+    </a>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+            <i class="bi bi-people"></i>
+          </div>
+          <div>
+            <p class="text-muted small mb-1">Total Active</p>
+            <h3 class="mb-0">{{ total_students }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+            <i class="bi bi-check-circle"></i>
+          </div>
+          <div>
+            <p class="text-muted small mb-1">Active</p>
+            <h3 class="mb-0">{{ stats.active }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="stat-icon bg-warning bg-opacity-10 text-warning me-3">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <div>
+            <p class="text-muted small mb-1">Pending</p>
+            <h3 class="mb-0">{{ stats.pending }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card stat-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3">
+            <i class="bi bi-x-circle"></i>
+          </div>
+          <div>
+            <p class="text-muted small mb-1">Not Returned</p>
+            <h3 class="mb-0">{{ stats.not_returned }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- Actions -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" id="formAction" value="">
+      
+      <div class="col-md-4">
+        <label class="form-label">Select Students</label>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-success flex-grow-1" onclick="selectAllReturning()">
+            <i class="bi bi-check-all me-2"></i>All Returning
+          </button>
+          <button type="button" class="btn btn-danger flex-grow-1" onclick="selectAllNotReturning()">
+            <i class="bi bi-x-lg me-2"></i>All Not Returning
+          </button>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Bulk Actions</label>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-success flex-grow-1" onclick="document.getElementById('formAction').value='mark_returning'">
+            <i class="bi bi-check-circle me-2"></i>Mark as Active
+          </button>
+          <button type="submit" class="btn btn-warning flex-grow-1" onclick="document.getElementById('formAction').value='mark_not_returning'">
+            <i class="bi bi-x-circle me-2"></i>Mark Not Returned
+          </button>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Class Quick Actions</label>
+        <select class="form-select" id="quickClassSelect">
+          <option value="">Select a class...</option>
+          {% for class_name in students_by_class.keys %}
+          <option value="{{ class_name }}">{{ class_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="btn btn-outline-primary w-100 mt-2" onclick="markClassAll()">
+          <i class="bi bi-check-all me-2"></i>Mark Entire Class as Active
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Students by Class -->
+{% for class_name, students_list in students_by_class.items %}
+<div class="card mb-4">
+  <div class="card-header d-flex align-items-center justify-content-between py-3">
+    <h5 class="mb-0">
+      <i class="bi bi-book me-2" style="color: var(--accent-primary);"></i>
+      {{ class_name }}
+      <span class="badge bg-secondary ms-2">{{ students_list|length }} students</span>
+    </h5>
+    <button type="button" class="btn btn-sm btn-outline-success" onclick="toggleClassCheckboxes('{{ class_name }}')">
+      <i class="bi bi-check-square me-1"></i>Select All
+    </button>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th style="width: 50px;">
+              <input type="checkbox" class="form-check-input class-checkbox" data-class="{{ class_name }}">
+            </th>
+            <th>Student ID</th>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in students_list %}
+          <tr>
+            <td>
+              <input type="checkbox" name="student_ids" value="{{ item.student.id }}" 
+                     class="form-check-input student-checkbox" data-class="{{ class_name }}">
+            </td>
+            <td><code>{{ item.student.student_id }}</code></td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" 
+                     style="width: 32px; height: 32px; font-size: 0.75rem;">
+                  {{ item.student.first_name|slice:":1" }}{{ item.student.last_name|slice:":1" }}
+                </div>
+                <span class="fw-medium">{{ item.student.first_name }} {{ item.student.last_name }}</span>
+              </div>
+            </td>
+            <td>
+              {% if item.current_status == 'ACTIVE' %}
+              <span class="badge bg-success">
+                <i class="bi bi-check-circle me-1"></i>Active
+              </span>
+              {% elif item.current_status == 'PENDING' %}
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-hourglass-split me-1"></i>Pending
+              </span>
+              {% elif item.current_status == 'NOT_RETURNED' %}
+              <span class="badge bg-danger">
+                <i class="bi bi-x-circle me-1"></i>Not Returned
+              </span>
+              {% else %}
+              <span class="badge bg-secondary">
+                <i class="bi bi-question-circle me-1"></i>{{ item.current_status }}
+              </span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="{% url 'core:student_profile' item.student.student_id %}" 
+                   class="btn btn-outline-secondary" title="View Profile">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% if not students_by_class %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bi bi-people text-muted fs-1 mb-3 d-block"></i>
+    <h5 class="text-muted">No students found</h5>
+    <p class="text-muted">Enroll students first to use the return checker.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleClassCheckboxes(className) {
+  const checkboxes = document.querySelectorAll(`.student-checkbox[data-class="${className}"]`);
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  checkboxes.forEach(cb => cb.checked = !allChecked);
+  updateClassCheckbox(className);
+}
+
+function updateClassCheckbox(className) {
+  const checkboxes = document.querySelectorAll(`.student-checkbox[data-class="${className}"]`);
+  const classCheckbox = document.querySelector(`.class-checkbox[data-class="${className}"]`);
+  const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+  const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+  classCheckbox.checked = allChecked;
+  classCheckbox.indeterminate = someChecked && !allChecked;
+}
+
+function selectAllReturning() {
+  document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = true);
+  document.querySelectorAll('.class-checkbox').forEach(cb => {
+    cb.checked = true;
+    cb.indeterminate = false;
+  });
+}
+
+function selectAllNotReturning() {
+  document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.class-checkbox').forEach(cb => {
+    cb.checked = false;
+    cb.indeterminate = false;
+  });
+}
+
+function markClassAll() {
+  const className = document.getElementById('quickClassSelect').value;
+  if (!className) {
+    alert('Please select a class first');
+    return;
+  }
+  
+  if (confirm(`Mark ALL students in ${className} as active for ${currentTerm}?`)) {
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "core:termly_return_checker" %}';
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = '{{ csrf_token }}';
+    form.appendChild(csrfInput);
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = 'mark_all_returning';
+    form.appendChild(actionInput);
+    
+    const classInput = document.createElement('input');
+    classInput.type = 'hidden';
+    classInput.name = 'class_name';
+    classInput.value = className;
+    form.appendChild(classInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+  }
+}
+
+// Update class checkbox state when individual checkboxes change
+document.querySelectorAll('.student-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => updateClassCheckbox(cb.dataset.class));
+});
+
+document.querySelectorAll('.class-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const className = cb.dataset.class;
+    document.querySelectorAll(`.student-checkbox[data-class="${className}"]`).forEach(sc => {
+      sc.checked = cb.checked;
+    });
+  });
+});
+</script>
+{% endblock %}

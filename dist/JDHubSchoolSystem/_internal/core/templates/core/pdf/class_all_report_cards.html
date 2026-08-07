@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 1.2cm; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11px; color: #1a1a1a; }
+    .page-break { page-break-after: always; }
+    .cover { text-align: center; padding-top: 120px; page-break-after: always; }
+    .cover h1 { font-size: 24px; color: #1e3a8a; }
+    .cover h2 { font-size: 16px; color: #374151; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    {% if school_logo_uri %}
+      <img src="{{ school_logo_uri }}" style="height: 70px;" alt="logo">
+    {% elif school.logo %}
+      <img src="{{ school.logo.url }}" style="height: 70px;" alt="logo">
+    {% endif %}
+    <h1>{{ school.school_name }}</h1>
+    <h2>{{ report_title }} — Class {{ class_name }}</h2>
+    <p>Academic Year {{ academic_year }} | Term {{ term }}</p>
+    <p style="margin-top: 40px;">{{ student_reports|length }} student report(s)</p>
+  </div>
+
+  {% for report in student_reports %}
+    {% include "core/pdf/report_card_fragment.html" with report=report %}
+    {% if not forloop.last %}<div class="page-break"></div>{% endif %}
+  {% endfor %}
+</body>
+</html>

@@ -1,0 +1,152 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Database Management{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">Database Management</h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">Backup and restore your database</p>
+  </div>
+  <div>
+    <a href="{% url 'core:audit_log' %}" class="btn btn-outline-primary">
+      <i class="bi bi-clipboard-data me-2"></i>View Audit Log
+    </a>
+  </div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="row g-4">
+  <!-- Database Info -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-database me-2"></i>Database Information
+      </div>
+      <div class="card-body">
+        <div class="mb-4">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Database File</span>
+            <code class="small">{{ db_path }}</code>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Current Size</span>
+            <span class="fw-semibold">{{ db_size_mb }} MB</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Last Modified</span>
+            <span>{{ db_modified|date:"M d, Y H:i" }}</span>
+          </div>
+        </div>
+        
+        <hr>
+        
+        <div class="d-grid gap-2">
+          <a href="{% url 'core:create_backup' %}" class="btn btn-primary">
+            <i class="bi bi-download me-2"></i>Create Instant Backup
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <i class="bi bi-lightning me-2"></i>Quick Actions
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <a href="{% url 'core:session_management' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-people me-2"></i>Manage Active Sessions
+          </a>
+          <a href="{% url 'core:audit_log' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-clock-history me-2"></i>View Activity Log
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Backup History -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <i class="bi bi-clock-history me-2"></i>Backup History
+        </div>
+        <span class="badge" style="background: var(--accent-primary);">{{ backup_logs|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if backup_logs %}
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Backup</th>
+                <th>Created By</th>
+                <th>Time</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for log in backup_logs %}
+              <tr>
+                <td><code class="small">{{ log.target_id }}</code></td>
+                <td>{{ log.username }}</td>
+                <td>{{ log.created_at|date:"M d, H:i" }}</td>
+                <td>
+                  <a href="{% url 'core:download_backup' log.target_id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-inbox text-muted fs-1 mb-3 d-block"></i>
+          <p class="text-muted mb-0">No backups created yet.</p>
+          <p class="small text-muted">Click "Create Instant Backup" to create your first backup.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Database Stats -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <i class="bi bi-pie-chart me-2"></i>System Statistics
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="stat-card p-3 text-center">
+              <i class="bi bi-people text-primary fs-4 mb-2 d-block"></i>
+              <h4 class="mb-0">{{ total_students|default:"-" }}</h4>
+              <small class="text-muted">Total Students</small>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card p-3 text-center">
+              <i class="bi bi-person-badge text-success fs-4 mb-2 d-block"></i>
+              <h4 class="mb-0">{{ total_staff|default:"-" }}</h4>
+              <small class="text-muted">Total Staff</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

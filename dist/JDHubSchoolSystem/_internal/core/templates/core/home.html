@@ -1,0 +1,589 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JD Hub School Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --secondary: #64748b;
+            --accent: #06b6d4;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.1) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem 0;
+        }
+        
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white !important;
+        }
+        
+        .navbar-brand svg {
+            width: 40px;
+            height: 40px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(79, 70, 229, 0.2);
+            border: 1px solid rgba(79, 70, 229, 0.4);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            color: #a5b4fc;
+            margin-bottom: 24px;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Feature Cards */
+        .features {
+            padding: 80px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .section-title p {
+            color: #94a3b8;
+            font-size: 1.125rem;
+        }
+        
+        .feature-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(79, 70, 229, 0.5);
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.2);
+        }
+        
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 28px;
+            color: white;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+        }
+        
+        .feature-card p {
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .cta-box {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(79, 70, 229, 0.4);
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+        }
+        
+        .cta-box h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .cta-box p {
+            color: #94a3b8;
+            margin-bottom: 32px;
+        }
+        
+        /* Buttons */
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.4);
+            color: white;
+        }
+        
+        .btn-secondary-custom {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-secondary-custom:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        /* Footer */
+        .footer {
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 48px 0 24px;
+        }
+        
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .footer-brand svg {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .footer-brand span {
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: white;
+        }
+        
+        .footer-text {
+            color: #64748b;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .footer-links h6 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            display: block;
+            padding: 6px 0;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+        
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+        
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 24px;
+            margin-top: 32px;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        .jd-hub-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1rem;
+            }
+            
+            .section-title h2 {
+                font-size: 2rem;
+            }
+            
+            .feature-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation"></div>
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#4f46e5"/>
+                            <stop offset="100%" style="stop-color:#06b6d4"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="45" fill="url(#logoGrad)"/>
+                    <path d="M50 20L75 35V55C75 70 63 82 50 85C37 82 25 70 25 55V35L50 20Z" fill="white" opacity="0.9"/>
+                    <path d="M50 30L65 40V55C65 65 58 73 50 75C42 73 35 65 35 55V40L50 30Z" fill="url(#logoGrad)"/>
+                    <circle cx="50" cy="50" r="8" fill="white"/>
+                </svg>
+                JD Hub School System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="#features">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:parent_kiosk' %}">Parent Kiosk</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="{% url 'core:login' %}">Staff Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary-custom ms-3" href="{% url 'core:login' %}">
+                            <i class="bi bi-box-arrow-in-right"></i> Get Started
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Offline-First Desktop Application
+            </div>
+            <h1>Modern School Management<br>Made Simple</h1>
+            <p>
+                A comprehensive, offline-first school management system with advanced features for academics, 
+                fees, reports, and parent communication. Single-device secured with hardware binding.
+            </p>
+            <div class="hero-buttons">
+                <a href="{% url 'core:login' %}" class="btn btn-primary-custom">
+                    <i class="bi bi-speedometer2"></i> Staff Portal
+                </a>
+                <a href="{% url 'core:parent_kiosk' %}" class="btn btn-secondary-custom">
+                    <i class="bi bi-qr-code-scan"></i> Parent Kiosk
+                </a>
+                <a href="{% url 'core:vendor_license_status' %}" class="btn btn-secondary-custom">
+                    <i class="bi bi-shield-check"></i> License Status
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Powerful Features for Modern Schools</h2>
+                <p>Everything you need to manage your school efficiently</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-shield-lock"></i>
+                        </div>
+                        <h3>Single-Device Security</h3>
+                        <p>Hardware-bound licensing ensures your system runs only on authorized devices. Copy protection built-in.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-wifi-off"></i>
+                        </div>
+                        <h3>Offline-First Architecture</h3>
+                        <p>Works without internet! Perfect for areas with unreliable connectivity. Data syncs when online.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-file-earmark-bar-graph"></i>
+                        </div>
+                        <h3>Smart Report Cards</h3>
+                        <p>Automated report generation with analytics, pass/fail ratios, and performance tracking.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <h3>Fee Management</h3>
+                        <p>Complete financial management with fee structures, payments, receipts, and balance tracking.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-whatsapp"></i>
+                        </div>
+                        <h3>Free Messaging Queues</h3>
+                        <p>Send WhatsApp and email notifications to parents. No SMS costs! Bulk individual messages.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-qr-code"></i>
+                        </div>
+                        <h3>QR Parent Kiosk</h3>
+                        <p>Parents access reports and fee info via QR code. No app needed, just scan and view.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <h3>Role-Based Access</h3>
+                        <p>9 distinct user roles from Admin to Parent. Each with appropriate permissions and views.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-card-heading"></i>
+                        </div>
+                        <h3>A4 ID Card Generator</h3>
+                        <p>Print student ID cards in bulk. 8-10 cards per A4 sheet with crop guides and tracking.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                        </div>
+                        <h3>Hybrid Backup System</h3>
+                        <p>Local, USB, and cloud backups. Auto-sync when online. Never lose your data.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-box">
+                <h2>Ready to Transform Your School Management?</h2>
+                <p>Get started with JD Hub School System today</p>
+                <div class="hero-buttons">
+                    <a href="{% url 'core:login' %}" class="btn btn-primary-custom">
+                        <i class="bi bi-rocket-takeoff"></i> Launch Application
+                    </a>
+                    <a href="{% url 'core:qr_connect' %}" class="btn btn-secondary-custom">
+                        <i class="bi bi-qr-code"></i> Mobile Connect
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="footer-brand">
+                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="50" cy="50" r="45" fill="url(#logoGrad)"/>
+                            <path d="M50 20L75 35V55C75 70 63 82 50 85C37 82 25 70 25 55V35L50 20Z" fill="white" opacity="0.9"/>
+                            <path d="M50 30L65 40V55C65 65 58 73 50 75C42 73 35 65 35 55V40L50 30Z" fill="url(#logoGrad)"/>
+                            <circle cx="50" cy="50" r="8" fill="white"/>
+                        </svg>
+                        <span>JD Hub School System</span>
+                    </div>
+                    <p class="footer-text">
+                        A comprehensive, offline-first school management solution 
+                        developed by Jordan Design Hub. Built for modern African schools.
+                    </p>
+                </div>
+                <div class="col-lg-2 col-md-4 mb-4 footer-links">
+                    <h6>Quick Links</h6>
+                    <a href="{% url 'core:login' %}">Staff Login</a>
+                    <a href="{% url 'core:parent_kiosk' %}">Parent Portal</a>
+                    <a href="{% url 'core:vendor_license_status' %}">License Status</a>
+                    <a href="{% url 'core:qr_connect' %}">Mobile Connect</a>
+                </div>
+                <div class="col-lg-3 col-md-4 mb-4 footer-links">
+                    <h6>Support</h6>
+                    <a href="#">Documentation</a>
+                    <a href="#">Training</a>
+                    <a href="#">System Status</a>
+                    <a href="{% url 'licensing:emergency_recovery' %}">Password Recovery</a>
+                </div>
+                <div class="col-lg-3 col-md-4 mb-4 footer-links">
+                    <h6>Contact Us</h6>
+                    <a href="tel:+256754687597"><i class="bi bi-telephone me-2"></i>+256 754 687 597</a>
+                    <a href="mailto:jordandesignhub@gmail.com"><i class="bi bi-envelope me-2"></i>jordandesignhub@gmail.com</a>
+                    <div class="mt-3">
+                        <span class="jd-hub-badge">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                            Powered by JD Hub
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Jordan Design Hub (JD Hub). All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

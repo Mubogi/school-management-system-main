@@ -1,0 +1,68 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Director of Studies Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  <div class="bg-white rounded-lg shadow p-6">
+    <p class="text-gray-500 text-sm">Total Students</p>
+    <p class="text-3xl font-bold text-gray-900">{{ total_students|default:0 }}</p>
+  </div>
+  <div class="bg-white rounded-lg shadow p-6">
+    <p class="text-gray-500 text-sm">Total Classes</p>
+    <p class="text-3xl font-bold text-gray-900">{{ total_classes|default:0 }}</p>
+  </div>
+  <div class="bg-white rounded-lg shadow p-6">
+    <p class="text-gray-500 text-sm">Subjects</p>
+    <p class="text-3xl font-bold text-gray-900">{{ total_subjects|default:0 }}</p>
+  </div>
+  <div class="bg-white rounded-lg shadow p-6">
+    <p class="text-gray-500 text-sm">Class Average</p>
+    <p class="text-3xl font-bold text-blue-600">{{ average_performance|default:0 }}%</p>
+    <p class="text-xs text-gray-400 mt-1">{{ marks_recorded|default:0 }} marks recorded</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Live Class Performance</h3>
+    <div class="space-y-3">
+      {% for row in class_performance %}
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+        <div>
+          <p class="font-medium text-gray-900">{{ row.class_name }}</p>
+          <p class="text-sm text-gray-500">Top: {{ row.top_student.first_name }} {{ row.top_student.last_name }}</p>
+        </div>
+        <span class="font-semibold text-blue-600">{{ row.average|floatformat:1 }}%</span>
+      </div>
+      {% empty %}
+      <p class="text-gray-500 text-sm">No marks recorded for this term yet.</p>
+      {% endfor %}
+    </div>
+    {% if chart_data %}
+    {% include "core/includes/analytics_charts.html" %}
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+    <div class="space-y-3">
+      <a href="{% url 'core:dos_students' %}" class="block px-4 py-2 bg-blue-500 text-white rounded text-center text-sm font-medium hover:bg-blue-600">
+        <i class="fas fa-users mr-2"></i>Students
+      </a>
+      <a href="{% url 'core:dos_classes' %}" class="block px-4 py-2 bg-green-500 text-white rounded text-center text-sm font-medium hover:bg-green-600">
+        <i class="fas fa-layer-group mr-2"></i>Classes
+      </a>
+      <a href="{% url 'core:dos_reports' %}" class="block px-4 py-2 bg-purple-500 text-white rounded text-center text-sm font-medium hover:bg-purple-600">
+        <i class="fas fa-file-alt mr-2"></i>Reports
+      </a>
+      <a href="{% url 'core:marks_bulk_entry' %}" class="block px-4 py-2 bg-indigo-500 text-white rounded text-center text-sm font-medium hover:bg-indigo-600">
+        <i class="fas fa-table mr-2"></i>Bulk Marks Entry
+      </a>
+      <a href="{% url 'core:class_teacher_remarks' %}" class="block px-4 py-2 bg-orange-500 text-white rounded text-center text-sm font-medium hover:bg-orange-600">
+        <i class="fas fa-comment mr-2"></i>Report Remarks
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

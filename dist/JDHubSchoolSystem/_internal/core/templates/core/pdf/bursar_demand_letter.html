@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Demand Letter</title>
+  <style>
+    @page { size: A4; margin: 1.5cm; }
+    body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px; line-height: 1.6; color: #1e293b; background: #fff; }
+    
+    .letter-date {
+      text-align: right;
+      color: #64748b;
+      font-size: 11px;
+      margin-bottom: 16px;
+    }
+    
+    .letter-header {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 20px 0;
+      border: 1px solid #fecaca;
+      text-align: center;
+    }
+    
+    .letter-header .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #dc2626;
+      margin-bottom: 8px;
+    }
+    
+    .letter-header .title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #991b1b;
+      margin-bottom: 12px;
+    }
+    
+    .amount-display {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-radius: 12px;
+      padding: 20px;
+      display: inline-block;
+      margin-top: 8px;
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+    }
+    
+    .amount-display .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.9);
+    }
+    
+    .amount-display .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+    }
+    
+    .letter-content {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #ef4444;
+    }
+    
+    .letter-content p {
+      margin: 0 0 12px;
+      text-align: justify;
+    }
+    
+    .student-highlight {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .student-highlight strong {
+      color: #0f172a;
+      font-size: 14px;
+    }
+    
+    .student-highlight .details {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    
+    .summary-strip {
+      display: table;
+      width: 100%;
+      margin: 16px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .summary-cell {
+      display: table-cell;
+      width: 33.33%;
+      padding: 14px;
+      text-align: center;
+      background: white;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .summary-cell:first-child { border-radius: 10px 0 0 10px; }
+    .summary-cell:last-child { border-radius: 0 10px 10px 0; }
+    
+    .summary-cell .label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+    
+    .summary-cell .value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 4px;
+    }
+    
+    .summary-cell:nth-child(2) .value { color: #059669; }
+    .summary-cell:nth-child(3) .value { color: #dc2626; }
+    
+    .action-box {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 16px 0;
+      border: 1px solid #fcd34d;
+    }
+    
+    .action-box .title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .action-box .text {
+      font-size: 11px;
+      color: #78350f;
+    }
+    
+    .signature-block {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px dashed #cbd5e1;
+    }
+    
+    .signature-block p {
+      margin: 0 0 4px;
+      color: #475569;
+    }
+    
+    .signature-block .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    
+    .footer {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 2px solid #f1f5f9;
+      font-size: 9px;
+      color: #94a3b8;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  {% include "core/pdf/letterhead.html" %}
+  
+  <div class="letter-date">{% now "F j, Y" %}</div>
+  
+  <div class="letter-header">
+    <div class="label">⚠️ Official Notice</div>
+    <div class="title">FEE DEMAND LETTER</div>
+    <div style="font-size: 11px; color: #64748b;">Term {{ term }} / {{ academic_year }}</div>
+    <div class="amount-display">
+      <div class="label">Outstanding Balance</div>
+      <div class="value">Ushs {{ balance }}</div>
+    </div>
+  </div>
+
+  <div class="letter-content">
+    <p>Dear {{ student.guardian_name|default:"Parent/Guardian" }},</p>
+    <p>
+      This is a formal request for payment of outstanding school fees for your ward,
+      <strong>{{ student.first_name }} {{ student.last_name }}</strong>.
+    </p>
+    
+    <div class="student-highlight">
+      <strong>{{ student.first_name }} {{ student.last_name }}</strong>
+      <div class="details">
+        📋 Student ID: {{ student.student_id }} &nbsp;|&nbsp; 
+        🏫 Class: {{ student.current_class }}
+      </div>
+    </div>
+    
+    <div class="summary-strip">
+      <div class="summary-cell">
+        <div class="label">Total Required</div>
+        <div class="value">Ushs {{ total_required }}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Total Paid</div>
+        <div class="value">Ushs {{ total_paid }}</div>
+      </div>
+      <div class="summary-cell">
+        <div class="label">Balance Due</div>
+        <div class="value">Ushs {{ balance }}</div>
+      </div>
+    </div>
+    
+    <p>Please settle the outstanding balance promptly to avoid disruption to the student's academic activities.</p>
+    
+    <div class="action-box">
+      <div class="title">⏰ Required Action</div>
+      <div class="text">Please make payment within 14 days of receiving this notice to prevent any academic inconvenience.</div>
+    </div>
+  </div>
+
+  <div class="signature-block">
+    <p>Yours faithfully,</p>
+    <p class="name">{{ school.bursar_name|default:"The Bursar" }}</p>
+    <p>{{ school.school_name }}</p>
+  </div>
+  
+  <div class="footer">
+    School Management System — {{ school.school_name }}<br>
+    Generated on {% now "F j, Y" %}
+  </div>
+</body>
+</html>

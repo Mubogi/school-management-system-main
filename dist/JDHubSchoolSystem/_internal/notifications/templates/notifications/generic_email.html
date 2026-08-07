@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">{{ school_name }}</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">Academic Management System</p>
+    </div>
+    
+    <!-- Content -->
+    <div style="background: #fff; padding: 30px; border: 1px solid #e2e8f0; border-top: none;">
+        
+        <p>Dear {{ guardian_name }},</p>
+        
+        <p style="margin: 20px 0;">
+            We hope this message finds you well. Please find below important information regarding your child's academic progress.
+        </p>
+        
+        <!-- Student Info Card -->
+        <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin: 0 0 15px; color: #4f46e5; font-size: 18px;">
+                <i class="bi bi-person-badge"></i> Student Information
+            </h3>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b;">Student Name:</td>
+                    <td style="padding: 8px 0; font-weight: bold;">{{ student_name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b;">Student ID:</td>
+                    <td style="padding: 8px 0;">{{ student_id }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b;">Class:</td>
+                    <td style="padding: 8px 0;">{{ class_name }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b;">Term:</td>
+                    <td style="padding: 8px 0;">{{ term }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #64748b;">Academic Year:</td>
+                    <td style="padding: 8px 0;">{{ academic_year }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Message Area -->
+        <div style="margin: 30px 0;">
+            <p>{{ message|default:"Please log in to the school portal for full details." }}</p>
+        </div>
+        
+        <!-- CTA Button -->
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ base_url }}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                Access School Portal
+            </a>
+        </div>
+        
+        <!-- Important Notice -->
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <strong style="color: #92400e;">Important Notice:</strong>
+            <p style="margin: 10px 0 0; color: #78350f;">
+                If you have any questions or concerns, please contact the school administration directly.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-radius: 0 0 10px 10px;">
+        <p style="margin: 0 0 10px;">
+            <strong>{{ school_name }}</strong><br>
+            This is an automated message. Please do not reply directly to this email.
+        </p>
+        <p style="margin: 0;">
+            © {% now "Y" %} {{ school_name }}. All rights reserved.
+        </p>
+    </div>
+    
+</body>
+</html>

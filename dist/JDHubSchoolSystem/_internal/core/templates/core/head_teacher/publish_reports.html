@@ -1,0 +1,147 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Publish & Lock Reports{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900">Publish &amp; Lock Reports</h2>
+    <p class="text-sm text-gray-600 mt-2">
+      Publishing locks marks for the assessments in that report (mid-term or end-of-term) so teachers cannot change scores after reports are finalized.
+      Class teachers should complete <a href="{% url 'core:class_teacher_remarks' %}" class="text-blue-600 underline">remarks &amp; attendance</a> before you publish.
+    </p>
+    <form method="get" class="flex flex-wrap gap-4 mt-4 items-end">
+      <div>
+        <label class="block text-xs font-medium text-gray-500">Term</label>
+        <input type="text" name="term" value="{{ term }}" class="border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500">Academic Year</label>
+        <input type="text" name="year" value="{{ academic_year }}" class="border rounded px-3 py-2 text-sm">
+      </div>
+      <button type="submit" class="px-4 py-2 bg-gray-700 text-white rounded text-sm">Apply</button>
+    </form>
+  </div>
+
+  <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+    <h3 class="font-semibold text-amber-900">Whole School</h3>
+    <p class="text-sm text-amber-800 mt-1">Term {{ term }} / {{ academic_year }}</p>
+    <div class="flex flex-wrap gap-3 mt-3">
+      {% if whole_school.midterm_published %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="unpublish">
+        <input type="hidden" name="class_name" value="">
+        <input type="hidden" name="term" value="{{ term }}">
+        <input type="hidden" name="year" value="{{ academic_year }}">
+        <input type="hidden" name="report_type" value="midterm">
+        <button type="submit" class="px-3 py-1.5 bg-yellow-600 text-white rounded text-sm">Unlock Mid-Term (All)</button>
+      </form>
+      {% else %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="publish">
+        <input type="hidden" name="class_name" value="">
+        <input type="hidden" name="term" value="{{ term }}">
+        <input type="hidden" name="year" value="{{ academic_year }}">
+        <input type="hidden" name="report_type" value="midterm">
+        <button type="submit" class="px-3 py-1.5 bg-green-600 text-white rounded text-sm">Publish Mid-Term (All)</button>
+      </form>
+      {% endif %}
+      {% if whole_school.eot_published %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="unpublish">
+        <input type="hidden" name="class_name" value="">
+        <input type="hidden" name="term" value="{{ term }}">
+        <input type="hidden" name="year" value="{{ academic_year }}">
+        <input type="hidden" name="report_type" value="eot">
+        <button type="submit" class="px-3 py-1.5 bg-yellow-600 text-white rounded text-sm">Unlock EOT (All)</button>
+      </form>
+      {% else %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="publish">
+        <input type="hidden" name="class_name" value="">
+        <input type="hidden" name="term" value="{{ term }}">
+        <input type="hidden" name="year" value="{{ academic_year }}">
+        <input type="hidden" name="report_type" value="eot">
+        <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white rounded text-sm">Publish End of Term (All)</button>
+      </form>
+      {% endif %}
+    </div>
+    <p class="text-xs mt-2">
+      Mid-Term: {% if whole_school.midterm_published %}<span class="text-green-700 font-medium">Published / Locked</span>{% else %}<span class="text-gray-600">Open for editing</span>{% endif %}
+      &nbsp;|&nbsp; EOT: {% if whole_school.eot_published %}<span class="text-green-700 font-medium">Published / Locked</span>{% else %}<span class="text-gray-600">Open for editing</span>{% endif %}
+    </p>
+  </div>
+
+  <div class="bg-white rounded-lg shadow overflow-hidden">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left">Class</th>
+          <th class="px-4 py-3 text-left">Mid-Term</th>
+          <th class="px-4 py-3 text-left">End of Term</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for row in class_rows %}
+        <tr>
+          <td class="px-4 py-3 font-medium">{{ row.class_name }}</td>
+          <td class="px-4 py-3">
+            {% if row.midterm_published %}
+            <span class="text-green-700 text-xs font-medium mr-2">LOCKED</span>
+            <form method="post" class="inline">{% csrf_token %}
+              <input type="hidden" name="action" value="unpublish">
+              <input type="hidden" name="class_name" value="{{ row.class_name }}">
+              <input type="hidden" name="term" value="{{ term }}">
+              <input type="hidden" name="year" value="{{ academic_year }}">
+              <input type="hidden" name="report_type" value="midterm">
+              <button type="submit" class="text-xs text-yellow-700 underline">Unlock</button>
+            </form>
+            {% else %}
+            <form method="post" class="inline">{% csrf_token %}
+              <input type="hidden" name="action" value="publish">
+              <input type="hidden" name="class_name" value="{{ row.class_name }}">
+              <input type="hidden" name="term" value="{{ term }}">
+              <input type="hidden" name="year" value="{{ academic_year }}">
+              <input type="hidden" name="report_type" value="midterm">
+              <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Publish</button>
+            </form>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if row.eot_published %}
+            <span class="text-green-700 text-xs font-medium mr-2">LOCKED</span>
+            <form method="post" class="inline">{% csrf_token %}
+              <input type="hidden" name="action" value="unpublish">
+              <input type="hidden" name="class_name" value="{{ row.class_name }}">
+              <input type="hidden" name="term" value="{{ term }}">
+              <input type="hidden" name="year" value="{{ academic_year }}">
+              <input type="hidden" name="report_type" value="eot">
+              <button type="submit" class="text-xs text-yellow-700 underline">Unlock</button>
+            </form>
+            {% else %}
+            <form method="post" class="inline">{% csrf_token %}
+              <input type="hidden" name="action" value="publish">
+              <input type="hidden" name="class_name" value="{{ row.class_name }}">
+              <input type="hidden" name="term" value="{{ term }}">
+              <input type="hidden" name="year" value="{{ academic_year }}">
+              <input type="hidden" name="report_type" value="eot">
+              <button type="submit" class="px-2 py-1 bg-indigo-600 text-white rounded text-xs">Publish</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No classes configured.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex gap-3">
+    <a href="{% url 'core:report_notifications' %}" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+      <i class="fas fa-paper-plane mr-1"></i> Notify Guardians (Email/SMS)
+    </a>
+    <a href="{% url 'core:head_teacher_reports' %}" class="px-4 py-2 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50">Back to Reports</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}
+{% block title %}Receipt {{ payment.unique_receipt_id }}{% endblock %}
+{% block content %}
+<div class="bg-white p-8 rounded shadow max-w-lg mx-auto print:shadow-none" id="receipt-print">
+  {% include "core/pdf/letterhead.html" with school=payment.student.school %}
+
+  <h2 class="text-center text-lg font-bold text-gray-900 mb-4">OFFICIAL PAYMENT RECEIPT</h2>
+  <p class="text-center text-sm text-gray-600 mb-6">Receipt No: <strong>{{ payment.unique_receipt_id }}</strong></p>
+
+  <table class="w-full text-sm mb-6">
+    <tr><td class="py-1 text-gray-600">Date</td><td class="py-1 font-medium">{{ payment.date_of_payment|date:"F j, Y H:i" }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Student</td><td class="py-1 font-medium">{{ payment.student.first_name }} {{ payment.student.last_name }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Student ID</td><td class="py-1">{{ payment.student.student_id }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Class</td><td class="py-1">{{ payment.student.current_class }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Term / Year</td><td class="py-1">{{ payment.term }} / {{ payment.academic_year }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Mode of payment</td><td class="py-1">{{ payment.get_payment_mode_display }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Total fees (term)</td><td class="py-1">Ushs {{ total_fees|floatformat:2 }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Amount paid (this receipt)</td><td class="py-1 text-lg font-bold text-emerald-700">Ushs {{ payment.amount_paid|floatformat:2 }}</td></tr>
+    <tr><td class="py-1 text-gray-600">Total paid to date</td><td class="py-1">Ushs {{ total_paid_after|floatformat:2 }}</td></tr>
+    <tr class="border-t"><td class="py-2 text-gray-800 font-semibold">Outstanding balance</td><td class="py-2 text-lg font-bold {% if payment.balance_remaining > 0 %}text-red-700{% else %}text-green-700{% endif %}">Ushs {{ payment.balance_remaining|floatformat:2 }}</td></tr>
+  </table>
+
+  {% if payment.balance_remaining <= 0 %}
+  <p class="text-center text-green-700 font-medium mb-4">Fees cleared for this term.</p>
+  {% endif %}
+
+  <p class="text-xs text-gray-500 text-center mb-6">Received by: {% if payment.recorded_by %}{{ payment.recorded_by.user.get_full_name|default:payment.recorded_by.user.username }}{% else %}Office{% endif %}</p>
+
+  <div class="flex flex-wrap gap-3 justify-center no-print">
+    <button type="button" onclick="window.print()" class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700">
+      <i class="fas fa-print"></i> Print Receipt
+    </button>
+    <a href="{% url 'core:receipt_pdf' payment.unique_receipt_id %}" target="_blank" class="bg-gray-700 text-white px-5 py-2 rounded hover:bg-gray-800">
+      Download PDF
+    </a>
+    <a href="{% url 'core:student_financial_statement_pdf' payment.student.student_id %}" target="_blank" class="bg-emerald-600 text-white px-5 py-2 rounded hover:bg-emerald-700">
+      Financial Statement
+    </a>
+  </div>
+</div>
+<style>
+@media print {
+  nav, .no-print { display: none !important; }
+  body { background: white; }
+}
+</style>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}

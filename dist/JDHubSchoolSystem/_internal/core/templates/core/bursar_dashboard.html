@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4">Bursar Dashboard</h1>
+  <div class="mb-4">
+    <h2 class="font-semibold">Record Payment</h2>
+    <form method="post">{% csrf_token %}
+      {{ form.as_p }}
+      <button class="mt-2 bg-indigo-600 text-white px-4 py-2 rounded">Record Payment</button>
+    </form>
+  </div>
+  <div>
+    <h2 class="font-semibold">Recent Payments</h2>
+    <ul class="mt-2">
+      {% for p in payments %}
+        <li class="py-1">{{ p.unique_receipt_id }} - {{ p.student.student_id }} - {{ p.amount_paid }} ({{ p.date_of_payment }})</li>
+      {% empty %}
+        <li>No payments yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}
