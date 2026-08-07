@@ -381,3 +381,127 @@ def get_feature_status():
             'code': code,
         }
     return status
+
+
+# ============================================================================
+# FEATURE MATRIX ACTIVATION VIEW
+# ============================================================================
+
+def feature_matrix_activation_view(request):
+    """
+    Activate using encrypted feature matrix key.
+    """
+    from django.shortcuts import render, redirect
+    from django.contrib import messages
+    from .activation import activate_feature_matrix, check_hwid_match
+    from .hwid import get_hwid_short
+    from .models import ALL_FEATURES
+    
+    context = {
+        'hwid_short': get_hwid_short(),
+        'all_features': ALL_FEATURES,
+    }
+    
+    # Check HWID match
+    hwid_ok, hwid_msg = check_hwid_match()
+    context['hwid_ok'] = hwid_ok
+    context['hwid_message'] = hwid_msg
+    
+    if request.method == 'POST':
+        encrypted_data = request.POST.get('encrypted_data', '').strip()
+        signature = request.POST.get('signature', '').strip()
+        
+        if not encrypted_data or not signature:
+            messages.error(request, 'Please provide both encrypted data and signature.')
+            return render(request, 'licensing/activate_matrix.html', context)
+        
+        success, message = activate_feature_matrix(encrypted_data, signature)
+        
+        if success:
+            messages.success(request, message)
+            return redirect('licensing:management')
+        else:
+            messages.error(request, message)
+    
+    return render(request, 'licensing/activate_matrix.html', context)
+
+
+# ============================================================================
+# EMERGENCY RECOVERY VIEWS
+# ============================================================================
+
+def emergency_recovery_view(request):
+    """
+    Emergency password recovery endpoint.
+    Shows challenge code and allows token entry.
+    """
+    from django.shortcuts import render
+    from django.contrib import messages
+    from .activation import generate_challenge_code, generate_recovery_token, use_recovery_token
+    from .hwid import _get_hardware_id
+    from .models import EmergencyRecoveryToken
+    from django.contrib.auth.models import User
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    context = {}
+    
+    # Get current HWID and generate challenge
+    hwid = _get_hardware_id()
+    context['hwid'] = hwid
+    context['hwid_short'] = hwid[:8] + '...' + hwid[-4:]
+    
+    # Generate or get existing challenge
+    challenge = generate_challenge_code(hwid)
+    context['challenge_code'] = challenge
+    
+    # Get available users for recovery
+    super_admins = User.objects.filter(is_superuser=True)
+    context['users'] = super_admins
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'generate_token':
+            # Generate a new recovery token
+            user_id = request.POST.get('user_id')
+            
+            try:
+                user = User.objects.get(id=user_id, is_superuser=True)
+            except User.DoesNotExist:
+                messages.error(request, 'Invalid user selected.')
+                return render(request, 'licensing/emergency_recovery.html', context)
+            
+            # Generate token
+            token = generate_recovery_token(hwid, challenge)
+            expires_at = timezone.now() + timedelta(minutes=30)
+            
+            # Store token
+            EmergencyRecoveryToken.objects.create(
+                token=token,
+                challenge_code=challenge,
+                hwid=hwid,
+                expires_at=expires_at,
+                created_for_user=user,
+            )
+            
+            context['generated_token'] = token
+            context['token_expiry'] = expires_at
+            context['recovery_user'] = user.username
+            messages.success(request, f'Recovery token generated for {user.username}')
+        
+        elif action == 'use_token':
+            token = request.POST.get('token', '').strip()
+            
+            if not token:
+                messages.error(request, 'Please enter a recovery token.')
+                return render(request, 'licensing/emergency_recovery.html', context)
+            
+            success, message = use_recovery_token(token, challenge, hwid)
+            
+            if success:
+                messages.success(request, message + ' Please login with password: password')
+            else:
+                messages.error(request, message)
+    
+    return render(request, 'licensing/emergency_recovery.html', context)

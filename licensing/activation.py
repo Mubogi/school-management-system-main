@@ -293,3 +293,238 @@ def enable_feature_temporary(feature: str) -> bool:
         return True
     except Exception:
         return False
+
+
+# ============================================================================
+# FEATURE MATRIX VALIDATION (Hardware-Bound Licensing)
+# ============================================================================
+
+def validate_feature_matrix(encrypted_data: str, signature: str, hwid: str) -> dict:
+    """
+    Validate an encrypted feature matrix key.
+    Returns dict with: valid, features, expiry, max_users, error
+    """
+    import hashlib
+    import hmac
+    import base64
+    import json
+    
+    SECRET_KEY = 'school_sms_matrix_secret_2026'  # In production, use secure key management
+    
+    # Verify signature
+    expected_sig = hmac.new(
+        SECRET_KEY.encode(),
+        encrypted_data.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    if not hmac.compare_digest(signature, expected_sig):
+        return {'valid': False, 'error': 'Invalid signature'}
+    
+    try:
+        # Decrypt data
+        decrypted = base64.b64decode(encrypted_data).decode()
+        data = json.loads(decrypted)
+        
+        # Verify HWID
+        if data.get('hwid') != hwid:
+            return {'valid': False, 'error': 'HWID mismatch - key bound to different machine'}
+        
+        # Check expiry
+        from datetime import datetime
+        expiry = data.get('expiry')
+        if expiry:
+            expiry_dt = datetime.fromisoformat(expiry)
+            if expiry_dt < datetime.now():
+                return {'valid': False, 'error': 'License has expired'}
+        
+        return {
+            'valid': True,
+            'features': data.get('features', []),
+            'expiry': data.get('expiry'),
+            'max_users': data.get('max_users', 1),
+            'tier': data.get('tier', 'BASIC'),
+        }
+    except Exception as e:
+        return {'valid': False, 'error': f'Invalid license data: {str(e)}'}
+
+
+def activate_feature_matrix(encrypted_data: str, signature: str) -> Tuple[bool, str]:
+    """
+    Activate a feature matrix license key.
+    Returns: (success, message)
+    """
+    from .models import LicenseActivation, EncryptedFeatureMatrix
+    from .hwid import _get_hardware_id
+    
+    hwid = _get_hardware_id()
+    
+    # Validate the matrix
+    result = validate_feature_matrix(encrypted_data, signature, hwid)
+    if not result['valid']:
+        return False, result['error']
+    
+    try:
+        # Deactivate existing activation
+        LicenseActivation.objects.filter(is_active=True).update(is_active=False)
+        
+        # Create new activation from matrix
+        from datetime import datetime
+        expiry = None
+        if result['expiry']:
+            expiry = datetime.fromisoformat(result['expiry'])
+        
+        activation = LicenseActivation.objects.create(
+            license_key=f"MATRIX-{result.get('key_id', 'unknown')[:8]}",
+            tier=result.get('tier', 'BASIC'),
+            enabled_features=','.join(result['features']),
+            expires_at=expiry,
+            hwid_bound=hwid,
+            is_active=True,
+        )
+        
+        return True, f"Feature matrix activated with {len(result['features'])} features"
+    except Exception as e:
+        return False, f"Activation failed: {str(e)}"
+
+
+def check_hwid_match() -> Tuple[bool, str]:
+    """
+    Check if the current HWID matches the bound HWID in license.
+    Returns: (matches, message)
+    """
+    from .models import LicenseActivation
+    from .hwid import _get_hardware_id
+    
+    try:
+        activation = LicenseActivation.objects.filter(is_active=True).first()
+        if not activation:
+            return True, "No HWID binding active"
+        
+        if not activation.hwid_bound:
+            return True, "No HWID binding"
+        
+        current_hwid = _get_hardware_id()
+        if current_hwid != activation.hwid_bound:
+            return False, "HWID mismatch - this installation has been moved to another machine"
+        
+        return True, "HWID verified"
+    except Exception as e:
+        return False, f"HWID check failed: {str(e)}"
+
+
+# ============================================================================
+# EMERGENCY RECOVERY TOKEN SYSTEM
+# ============================================================================
+
+def generate_challenge_code(hwid: str) -> str:
+    """
+    Generate a challenge code based on HWID and current timestamp.
+    Format: HHWD-XXXX-TIMESTAMP (short code for display)
+    """
+    import time
+    from datetime import datetime
+    
+    # Get current hour-minute for time-based code
+    now = datetime.now()
+    time_part = now.strftime("%m%d%H%M")  # MMDDHHMM
+    
+    # Create short HWID
+    hwid_short = hwid.replace('-', '')[:8].upper()
+    
+    # Combine
+    challenge = f"{hwid_short}-{time_part}"
+    return challenge
+
+
+def generate_recovery_token(hwid: str, challenge: str) -> str:
+    """
+    Generate a one-time recovery token using HWID, challenge, and master secret.
+    """
+    import hashlib
+    import secrets
+    import time
+    
+    MASTER_SECRET = 'school_sms_emergency_secret_2026'  # In production, use secure key
+    
+    # Create token using multiple sources
+    raw = f"{MASTER_SECRET}-{hwid}-{challenge}-{time.time()}"
+    token = hashlib.sha256(raw.encode()).hexdigest()[:16].upper()
+    
+    return token
+
+
+def verify_recovery_token(token: str, challenge: str, hwid: str) -> bool:
+    """
+    Verify a recovery token against the stored challenge and HWID.
+    """
+    from .models import EmergencyRecoveryToken
+    from datetime import datetime
+    
+    try:
+        # Find the token
+        record = EmergencyRecoveryToken.objects.filter(
+            token=token,
+            challenge_code=challenge,
+            hwid=hwid
+        ).first()
+        
+        if not record:
+            return False
+        
+        return record.is_valid()
+    except Exception:
+        return False
+
+
+def use_recovery_token(token: str, challenge: str, hwid: str) -> Tuple[bool, str]:
+    """
+    Use a recovery token to reset a password.
+    Returns: (success, message)
+    """
+    from .models import EmergencyRecoveryToken
+    from django.contrib.auth.models import User
+    from django.utils import timezone
+    
+    try:
+        record = EmergencyRecoveryToken.objects.filter(
+            token=token,
+            challenge_code=challenge,
+            hwid=hwid
+        ).first()
+        
+        if not record:
+            return False, "Invalid recovery token"
+        
+        if not record.is_valid():
+            return False, "Recovery token expired or already used"
+        
+        # Reset password to 'password'
+        user = record.created_for_user
+        if not user:
+            return False, "No user associated with this token"
+        
+        user.set_password('password')
+        user.save()
+        
+        # Mark token as used
+        record.is_used = True
+        record.used_at = timezone.now()
+        record.save()
+        
+        # Log the action
+        _log_license_action('EMERGENCY_RESET', details=f"Password reset for {user.username}")
+        
+        return True, f"Password reset successfully for {user.username}"
+    except Exception as e:
+        return False, f"Recovery failed: {str(e)}"
+
+
+def _log_license_action(action: str, details: str = '', user=None):
+    """Log license-related actions."""
+    from .models import LicenseLog
+    LicenseLog.objects.create(
+        action=action,
+        details=details,
+        user=user,
+    )

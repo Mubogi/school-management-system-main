@@ -19,6 +19,46 @@ FEATURE_CHOICES = [
     ('ADVANCED_ANALYTICS', 'Advanced Analytics'),
 ]
 
+# All supported features for the feature matrix
+ALL_FEATURES = [code for code, _ in FEATURE_CHOICES]
+
+
+class EncryptedFeatureMatrix(models.Model):
+    """
+    Stores encrypted feature matrix keys for hardware-bound licensing.
+    The key contains: HWID, expiry, max users, and feature flags.
+    """
+    
+    key_id = models.CharField(max_length=50, unique=True, db_index=True)
+    encrypted_data = models.TextField(help_text="Base64 encoded encrypted feature matrix")
+    signature = models.CharField(max_length=128, help_text="HMAC signature for validation")
+    hwid = models.CharField(max_length=50, help_text="Bound Hardware ID")
+    expiry_date = models.DateTimeField(null=True, blank=True)
+    max_users = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_feature_matrices'
+    )
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Feature Matrix Key"
+        verbose_name_plural = "Feature Matrix Keys"
+    
+    def __str__(self):
+        return f"Matrix {self.key_id[:8]}... (HWID: {self.hwid[:8]}...)"
+    
+    def is_valid(self):
+        """Check if this feature matrix is valid."""
+        if not self.is_active:
+            return False
+        if self.expiry_date and self.expiry_date < timezone.now():
+            return False
+        return True
+
 
 class LicenseKey(models.Model):
     """Model for storing generated license keys."""
@@ -129,6 +169,95 @@ class FeatureActivationKey(models.Model):
         if self.expires_at < timezone.now():
             return False
         return True
+
+
+class EmergencyRecoveryToken(models.Model):
+    """
+    One-time master recovery tokens for emergency password reset.
+    Generated using HWID + timestamp + master secret.
+    """
+    
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    challenge_code = models.CharField(max_length=64, help_text="Challenge code shown to user")
+    hwid = models.CharField(max_length=50, help_text="Hardware ID for this machine")
+    is_used = models.BooleanField(default=False)
+    used_by = models.CharField(max_length=100, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_for_user = models.ForeignKey(
+        'auth.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='emergency_tokens'
+    )
+    
+    class Meta:
+        verbose_name = "Emergency Recovery Token"
+        verbose_name_plural = "Emergency Recovery Tokens"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Token {self.token[:8]}... ({'Used' if self.is_used else 'Available'})"
+    
+    def is_valid(self):
+        """Check if this token is still valid for use."""
+        if self.is_used:
+            return False
+        if self.expires_at < timezone.now():
+            return False
+        return True
+
+
+class BackupRecord(models.Model):
+    """
+    Tracks backup history for the hybrid backup system.
+    """
+    
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+        ('PENDING_SYNC', 'Pending Sync'),
+        ('SYNCED', 'Synced'),
+    ]
+    
+    backup_type = models.CharField(max_length=20, choices=[
+        ('AUTO', 'Automatic'),
+        ('MANUAL', 'Manual'),
+        ('SCHEDULED', 'Scheduled'),
+    ])
+    filename = models.CharField(max_length=255)
+    file_path = models.CharField(max_length=500)
+    file_size = models.BigIntegerField(default=0)
+    checksum = models.CharField(max_length=64, help_text="SHA256 checksum")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    is_encrypted = models.BooleanField(default=True)
+    sync_status = models.CharField(max_length=20, default='LOCAL', help_text="LOCAL, DRIVE, USB")
+    drive_file_id = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    synced_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.TextField(blank=True)
+    school = models.ForeignKey(
+        'core.SchoolConfiguration',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='backups'
+    )
+    
+    class Meta:
+        verbose_name = "Backup Record"
+        verbose_name_plural = "Backup Records"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.filename} ({self.status})"
+    
+    @property
+    def file_size_mb(self):
+        return round(self.file_size / (1024 * 1024), 2)
 
 
 class LicenseLog(models.Model):

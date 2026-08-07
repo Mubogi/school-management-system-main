@@ -373,20 +373,36 @@ def pwa_manifest(request):
     school = SchoolConfiguration.get_school()
     name = school.network_app_name if school else 'Jordan Hub School System'
     icon = static('core/icon-192.png')
+    
+    # Get all possible URLs for the manifest
+    base_url = request.build_absolute_uri('/')[:-1]
+    
     return HttpResponse(
         f'''{{
   "name": "{name}",
   "short_name": "Jordan Hub",
+  "description": "Complete school management solution",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
+  "lang": "en-US",
+  "categories": ["education", "business"],
   "icons": [
-    {{"src": "{icon}", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"}},
-    {{"src": "{static('core/icon-512.png')}", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}},
+    {{"src": "{icon}", "sizes": "192x192", "type": "image/png", "purpose": "any"}},
+    {{"src": "{static('core/icon-512.png')}", "sizes": "512x512", "type": "image/png", "purpose": "any"}},
+    {{"src": "{static('core/icon-maskable.png')}", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}},
     {{"src": "{static('core/favicon.ico')}", "sizes": "64x64", "type": "image/x-icon"}}
-  ]
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {{"name": "Dashboard", "url": "/", "description": "Go to main dashboard"}},
+    {{"name": "Students", "url": "/search/students/", "description": "Search students"}}
+  ],
+  "handle_links": "preferred",
+  "launch_handler": {{"client_mode": "navigate-existing"}}
 }}''',
         content_type='application/manifest+json',
     )

@@ -190,15 +190,51 @@
         .network-info {
             margin-top: 24px;
             padding: 16px;
-            background: #fef3c7;
+            background: #dbeafe;
             border-radius: 12px;
             font-size: 13px;
-            color: #92400e;
+            color: #1e40af;
         }
         
         .network-info strong {
             display: block;
             margin-bottom: 4px;
+        }
+        
+        .lan-info {
+            margin-top: 16px;
+            padding: 12px;
+            background: #dcfce7;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #166534;
+        }
+        
+        .lan-url {
+            font-family: monospace;
+            font-weight: 600;
+            background: #bbf7d0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 6px;
+        }
+        
+        .kiosk-btn {
+            display: block;
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            color: #92400e;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .kiosk-btn:hover {
+            background: #fde68a;
         }
         
         @media (max-width: 480px) {
@@ -236,6 +272,14 @@
         <h1 class="title">Connect via QR Code</h1>
         <p class="subtitle">Scan to access {{ school_name }} on your phone</p>
         
+        {% if lan_ip %}
+        <div class="lan-info">
+            <strong>📱 Mobile Access</strong><br>
+            Your LAN IP is: <code>{{ lan_ip }}</code><br>
+            Scan the QR code below to connect via your local network
+        </div>
+        {% endif %}
+        
         <div class="qr-container">
             <img src="{{ qr_code_url }}" alt="QR Code" class="qr-code">
             <p class="scan-instructions">
@@ -245,9 +289,16 @@
         </div>
         
         <div class="url-box">
-            <div class="url-label">Or visit directly</div>
+            <div class="url-label">Desktop URL</div>
             <div class="url-text">{{ login_url }}</div>
         </div>
+        
+        {% if lan_ip %}
+        <div class="url-box" style="background: #ecfdf5; border-color: #10b981;">
+            <div class="url-label">Mobile/LAN URL</div>
+            <div class="url-text" style="color: #059669;">{{ lan_login_url }}</div>
+        </div>
+        {% endif %}
         
         <div class="btn-group">
             <a href="{{ login_url }}" class="btn btn-primary">
@@ -263,6 +314,12 @@
                 Download
             </a>
         </div>
+        
+        {% if lan_kiosk_url %}
+        <a href="{{ lan_kiosk_url }}" class="kiosk-btn">
+            🔐 Parent Kiosk Portal (for parents' devices)
+        </a>
+        {% endif %}
         
         <div class="features">
             <div class="features-title">What's available on mobile</div>
@@ -284,7 +341,7 @@
         
         <div class="network-info">
             <strong>💡 Tip for best experience</strong>
-            Make sure your phone is connected to the same network as this computer, or use the URL above when connected to mobile data.
+            Make sure your phone is connected to the same WiFi network as this computer for best results.
         </div>
     </div>
 </body>

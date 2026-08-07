@@ -2651,6 +2651,20 @@ def get_base_url(request):
     return 'http://localhost:8000'
 
 
+def get_lan_ip():
+    """Get the local LAN IP address."""
+    import socket
+    try:
+        # Create a socket to determine the local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        lan_ip = s.getsockname()[0]
+        s.close()
+        return lan_ip
+    except Exception:
+        return None
+
+
 class QRCodeConnectView(TemplateView):
     """Display QR code for members to connect via phone LAN."""
     template_name = 'core/qr_connect.html'
@@ -2667,9 +2681,19 @@ class QRCodeConnectView(TemplateView):
         base_url = get_base_url(self.request)
         login_url = f"{base_url}/accounts/login/"
         
+        # Get LAN IP for mobile access
+        lan_ip = get_lan_ip()
+        ctx['lan_ip'] = lan_ip
+        if lan_ip:
+            ctx['lan_login_url'] = f"http://{lan_ip}:8000/accounts/login/"
+            ctx['lan_kiosk_url'] = f"http://{lan_ip}:8000/parent-kiosk/"
+        
         # Generate QR code
-        ctx['qr_code_url'] = generate_qr_code_data_url(login_url)
+        # Use LAN URL for mobile access
+        mobile_url = ctx.get('lan_login_url', login_url)
+        ctx['qr_code_url'] = generate_qr_code_data_url(mobile_url)
         ctx['login_url'] = login_url
+        ctx['mobile_url'] = mobile_url
         ctx['school_name'] = school.school_name if school else 'School Management System'
         
         return ctx
