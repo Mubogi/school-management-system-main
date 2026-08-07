@@ -1,7 +1,11 @@
 # School Management System - Agent Knowledge Base
 
 ## Project Overview
-A comprehensive Django-based school management system with support for multiple schools, user roles, fee management, marks/grades, and academic reporting. Commercial-grade with HWID licensing, RBAC, and offline-first desktop support.
+**JD Hub School Management System** - A commercial, offline-first school management application developed by Jordan Design Hub (JD Hub).
+
+- **Developer**: Jordan Design Hub (JD Hub)
+- **Contact**: +256 754 687 597, jordandesignhub@gmail.com
+- **License**: Proprietary, HWID-bound desktop application
 
 ## Key Technologies
 - Django 6.1 with SQLite
@@ -10,7 +14,8 @@ A comprehensive Django-based school management system with support for multiple 
 - PDF generation (reportlab)
 - Licensing system with feature flags
 - Hardware-bound licensing (HWID)
-- RBAC with 8 distinct roles
+- RBAC with 9 distinct roles
+- PyWebView for desktop wrapper
 
 ## User Roles (RBAC)
 - MASTER_VENDOR: Software owner - full system control
@@ -29,10 +34,23 @@ A comprehensive Django-based school management system with support for multiple 
 - Mixins: RoleRequiredMixin, MasterVendorMixin, SchoolAdminMixin, etc.
 - Hierarchy: MASTER_VENDOR > SCHOOL_ADMIN > HEAD_TEACHER > DOS > ACCOUNTANT > SECRETARY > CLASS_TEACHER > SUBJECT_TEACHER > PARENT
 
+## First-Run Setup
+- URL: /setup/
+- Creates initial Jordan admin (password: 20020120)
+- Configures school details
+- Displays HWID for binding
+- Creates demo license
+
 ## Important URLs
+### Public Pages
+- / - Landing page with JD Hub branding
+- /setup/ - First-run setup wizard
+- /parent-kiosk/ - Parent portal (QR kiosk)
+- /qr-connect/ - Mobile QR code access
+
 ### Authentication
-- Login: /accounts/login/
-- Dashboard: / (auto-redirects based on role)
+- /accounts/login/ - Staff login
+- /accounts/logout/ - Logout
 
 ### Master Vendor (Software Owner)
 - /master-vendor/ - Vendor Dashboard
@@ -42,7 +60,6 @@ A comprehensive Django-based school management system with support for multiple 
 - /master-vendor/feature-matrix/ - Feature Matrix
 - /master-vendor/backups/ - Backup Management
 - /master-vendor/audit/ - Audit Log
-- /master-vendor/branding/ - Branding Control
 
 ### Academic
 - /head-teacher/ - Executive Dashboard
@@ -52,38 +69,44 @@ A comprehensive Django-based school management system with support for multiple 
 
 ### Finance
 - /bursar/ - Bursar Dashboard
+- /bursar/fees/ - Fee Structures
+- /bursar/payments/ - Payment Recording
+- /bursar/receipts/ - Receipts
 
 ### Communication
 - /notifications/whatsapp-queue/ - WhatsApp Message Queue
 - /notifications/email-queue/ - Email Queue
 - /notifications/templates/ - Message Templates
 
+### Student Management
+- /secretary/students/ - Student List
+- /secretary/enroll/ - New Enrollment
+- /dos/batch-id-cards/ - A4 Batch ID Cards
+- /dos/termly-return/ - Termly Return Checker
+
 ### Other
-- /qr-connect/ - QR Code for Mobile/LAN
-- /parent-kiosk/ - Parent Portal
 - /licensing/manage/ - License Management
 - /licensing/emergency-recovery/ - Password Recovery
-- /dos/termly-return/ - Termly Return Checker
-- /dos/batch-id-cards/ - A4 Batch ID Cards
+- /system/license-status/ - View & Upgrade License
 
 ## Feature Flags (Licensing)
-- PHOTO_UPLOAD
-- ID_GENERATOR
-- PARENT_KIOSK
-- PDF_PREVIEW
-- BATCH_PROMOTION
-- FINANCE_REPORTS
-- SMS_REPORTS
-- ATTENDANCE
-- CLOUD_SYNC
-- ADVANCED_ANALYTICS
+- PHOTO_UPLOAD - Student photos
+- ID_GENERATOR - ID card generation
+- PARENT_KIOSK - Parent portal access
+- PDF_PREVIEW - PDF viewers
+- BATCH_PROMOTION - Bulk promotions
+- FINANCE_REPORTS - Financial reports
+- SMS_REPORTS - SMS features
+- ATTENDANCE - Attendance tracking
+- CLOUD_SYNC - Cloud backup
+- ADVANCED_ANALYTICS - Analytics dashboard
 
 ## Hardware-Bound Licensing
 - HWID calculated from CPU, disk serial, MAC address
+- Location: licensing/hwid.py
 - EncryptedFeatureMatrix model for matrix key validation
-- check_hwid_match() validates machine binding
 - EmergencyRecoveryToken for password recovery
-- License Status & Upgrade view at /system/license-status/
+- License Status view at /system/license-status/
 
 ## Messaging System
 - WhatsApp Web Queue (/notifications/whatsapp-queue/)
@@ -91,9 +114,19 @@ A comprehensive Django-based school management system with support for multiple 
 - Pre-formatted wa.me links
 - BCC mode for privacy
 
+## Screenshots
+- Location: /screenshots/
+- Generator: utils/generate_screenshots.py (Selenium)
+- 10 screenshots for feature documentation
+
 ## Backup System
 - Location: /backups/
 - CLI: python -m backups.backup_service [backup|auto|sync-usb|sync-cloud|list]
+
+## Desktop App
+- Entry point: main.py (PyWebView wrapper)
+- Binds to: 0.0.0.0:8000 for LAN access
+- PWA support: manifest.json, sw.js
 
 ## Database Migrations
 ```bash
@@ -104,4 +137,5 @@ python manage.py migrate --settings=django_sms.settings
 ## Running the Server
 ```bash
 python manage.py runserver 0.0.0.0:8000 --settings=django_sms.settings
+python main.py  # Desktop app with PyWebView
 ```
