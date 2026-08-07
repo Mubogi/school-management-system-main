@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Desktop Application Entry Point
+JD Hub School Management System - Desktop Application Entry Point
 Uses pywebview to serve the Django app in a native desktop window.
 
 Run this file directly to launch the desktop application:
@@ -8,6 +8,9 @@ Run this file directly to launch the desktop application:
 
 Or build with PyInstaller using:
     python build.py
+
+Developer: Jordan Design Hub (JD Hub)
+Contact: +256 754 687 597 | jordandesignhub@gmail.com
 """
 import os
 import sys
@@ -24,7 +27,14 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('SchoolManagementDesktop')
+logger = logging.getLogger('JDHubSchoolSystem')
+
+# App Info
+APP_NAME = "JD Hub School Management System"
+APP_VERSION = "1.0.0"
+APP_PUBLISHER = "Jordan Design Hub (JD Hub)"
+APP_CONTACT = "+256 754 687 597"
+APP_EMAIL = "jordandesignhub@gmail.com"
 
 # Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_sms.settings')
@@ -113,14 +123,41 @@ def open_browser(url, delay=2):
     webbrowser.open(url)
 
 
+def print_banner():
+    """Print application banner."""
+    banner = f"""
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   ███████╗██╗  ██╗ ██████╗ ██████╗                         ║
+║   ██╔════╝██║ ██╔╝██╔═══██╗██╔══██╗                        ║
+║   ███████╗█████╔╝ ██║   ██║██████╔╝                        ║
+║   ╚════██║██╔═██╗ ██║   ██║██╔══██╗                        ║
+║   ███████║██║  ██╗╚██████╔╝██║  ██║                        ║
+║   ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝                        ║
+║                                                              ║
+║   SCHOOL MANAGEMENT SYSTEM                                    ║
+║   Version {APP_VERSION}                                              ║
+║                                                              ║
+║   Powered by Jordan Design Hub (JD Hub)                      ║
+║   Contact: {APP_CONTACT}                              ║
+║   Email: {APP_EMAIL}                         ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+    print(banner)
+
+
 def main():
     """
     Main entry point for the desktop application.
     """
     import argparse
     
+    # Print banner
+    print_banner()
+    
     parser = argparse.ArgumentParser(
-        description='School Management System Desktop Application'
+        description=f'{APP_NAME} - Powered by {APP_PUBLISHER}'
     )
     parser.add_argument(
         '--port', '-p',
@@ -130,8 +167,8 @@ def main():
     )
     parser.add_argument(
         '--host',
-        default='127.0.0.1',
-        help='Host to bind to (default: 127.0.0.1)'
+        default='0.0.0.0',
+        help='Host to bind to (default: 0.0.0.0 for LAN access)'
     )
     parser.add_argument(
         '--browser', '-b',
@@ -158,6 +195,9 @@ def main():
     
     url = f"http://{args.host}:{args.port}"
     
+    logger.info(f"Starting {APP_NAME}")
+    logger.info(f"Bind address: {args.host}:{args.port}")
+    
     if args.browser:
         # Run without webview - just use browser
         logger.info(f"Starting server at {url}")
@@ -182,9 +222,9 @@ def main():
             import time
             time.sleep(2)
             
-            # Create pywebview window
+            # Create pywebview window with JD Hub branding
             window = webview.create_window(
-                title='School Management System',
+                title=f'{APP_NAME} - Powered by JD Hub',
                 url=url,
                 width=1280,
                 height=800,

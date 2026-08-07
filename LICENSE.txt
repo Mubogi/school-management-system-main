@@ -1,0 +1,82 @@
+================================================================================
+                    JD HUB SCHOOL MANAGEMENT SYSTEM
+                         LICENSE AGREEMENT
+================================================================================
+
+Copyright (c) 2024 Jordan Design Hub (JD Hub). All rights reserved.
+
+SOFTWARE LICENSE
+
+This End User License Agreement ("Agreement") is between you (either an 
+individual or a single entity) and Jordan Design Hub (JD Hub) for the 
+software product identified above, which includes computer software and may 
+include associated media, printed materials, and "online" or electronic 
+documentation ("SOFTWARE PRODUCT").
+
+By installing, copying, or otherwise using the SOFTWARE PRODUCT, you agree 
+to be bound by the terms of this Agreement.
+
+1. GRANT OF LICENSE
+   Jordan Design Hub (JD Hub) grants you the following rights:
+   - Installation and Use: You may install and use one copy of the SOFTWARE 
+     PRODUCT on a single computer.
+   - Hardware Binding: The SOFTWARE PRODUCT is bound to the Hardware ID (HWID) 
+     of the computer on which it is installed. Transfer to another computer 
+     requires a new license.
+
+2. RESTRICTIONS
+   You may NOT:
+   - Copy, modify, or distribute the SOFTWARE PRODUCT
+   - Reverse engineer, decompile, or disassemble the SOFTWARE PRODUCT
+   - Sublicense, rent, or lease the SOFTWARE PRODUCT
+   - Use the SOFTWARE PRODUCT for any unlawful purpose
+   - Remove or alter any proprietary notices on the SOFTWARE PRODUCT
+
+3. SINGLE DEVICE BINDING
+   This SOFTWARE PRODUCT is protected by single-device hardware binding (HWID).
+   The software will only function on the authorized device. Attempting to 
+   run the software on an unauthorized device will result in automatic 
+   system lockout.
+
+4. TERMINATION
+   Without prejudice to any other rights, Jordan Design Hub (JD Hub) may 
+   terminate this Agreement if you fail to comply with the terms and 
+   conditions. In such event, you must destroy all copies of the SOFTWARE 
+   PRODUCT.
+
+5. NO WARRANTIES
+   THE SOFTWARE PRODUCT IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, 
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL JORDAN DESIGN HUB (JD HUB) BE LIABLE FOR ANY SPECIAL, 
+   INCIDENTAL, INDIRECT, OR CONSEQUENTIAL DAMAGES WHATSOEVER ARISING OUT 
+   OF THE USE OF OR INABILITY TO USE THE SOFTWARE PRODUCT.
+
+7. SUPPORT
+   Technical support is available through:
+   - Phone: +256 754 687 597
+   - Email: jordandesignhub@gmail.com
+   
+8. UPDATES
+   Jordan Design Hub (JD Hub) may provide updates and upgrades to the 
+   SOFTWARE PRODUCT at its discretion.
+
+9. GOVERNING LAW
+   This Agreement shall be governed by the laws of Uganda.
+
+================================================================================
+                    POWERED BY JORDAN DESIGN HUB (JD HUB)
+                    Building the future of African education technology
+================================================================================
+
+By installing this software, you acknowledge that you have read, understood, 
+and agree to be bound by the terms and conditions of this Agreement.
+
+Jordan Design Hub (JD Hub)
+Location: Uganda
+Contact: +256 754 687 597
+Email: jordandesignhub@gmail.com
+Website: https://jordandesignhub.com
+================================================================================
