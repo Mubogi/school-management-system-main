@@ -1,304 +1,385 @@
 {% extends 'core/base.html' %}
+
+{% block title %}Super Admin Dashboard{% endblock %}
+
 {% block content %}
-<div class="bg-white p-6 rounded shadow">
-  <h1 class="text-3xl font-bold mb-6">Super Admin School Management</h1>
+<!-- Page Header -->
+<div class="d-flex align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">Super Admin Dashboard</h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">Manage schools, staff, and system configuration</p>
+  </div>
+</div>
 
-  <div class="mb-8 border-b pb-6">
-    <h2 class="text-2xl font-semibold mb-4">Step 1: Select or Create a School</h2>
-    <p class="text-sm text-gray-600 mb-4">Choose an existing school or add a new one. Each school uses its own initials (for example <strong>AIU</strong>) so staff can log in with the correct school context.</p>
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center">
+        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1);">
+          <i class="bi bi-building" style="color: var(--accent-primary);"></i>
+        </div>
+        <div class="ms-3">
+          <p class="mb-0 small text-muted">Schools</p>
+          <h3 class="mb-0 fw-bold">{{ schools|length }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1);">
+          <i class="bi bi-people" style="color: var(--success);"></i>
+        </div>
+        <div class="ms-3">
+          <p class="mb-0 small text-muted">Staff Members</p>
+          <h3 class="mb-0 fw-bold">{{ staff_users|length }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center">
+        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1);">
+          <i class="bi bi-mortarboard" style="color: var(--warning);"></i>
+        </div>
+        <div class="ms-3">
+          <p class="mb-0 small text-muted">Students</p>
+          <h3 class="mb-0 fw-bold">{{ students|length }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center">
+        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1);">
+          <i class="bi bi-clipboard-check" style="color: var(--danger);"></i>
+        </div>
+        <div class="ms-3">
+          <p class="mb-0 small text-muted">Assessments</p>
+          <h3 class="mb-0 fw-bold">{{ assessment_types|length }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
-      <div class="bg-gray-50 p-4 rounded border">
-        <h3 class="font-semibold mb-3">Add New School</h3>
-        <form method="post" enctype="multipart/form-data" class="space-y-3">
+<div class="row g-4">
+  <!-- Left Column - School Management -->
+  <div class="col-lg-6">
+    <!-- School Card -->
+    <div class="card mb-4">
+      <div class="card-header d-flex align-items-center">
+        <i class="bi bi-building me-2"></i>
+        <span>School Management</span>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="mb-4">
           {% csrf_token %}
           <input type="hidden" name="action" value="create_school">
-          {{ school_form.as_p }}
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Create School</button>
+          <h6 class="mb-3">Create New School</h6>
+          {% for field in school_form %}
+            <div class="mb-2">
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.errors %}
+                <small class="text-danger">{{ field.errors.0 }}</small>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary w-100 mt-2">
+            <i class="bi bi-plus-lg me-2"></i>Create School
+          </button>
         </form>
       </div>
+    </div>
 
-      <div class="bg-gray-50 p-4 rounded border">
-        <h3 class="font-semibold mb-3">Existing Schools</h3>
-        <table class="w-full border-collapse border border-gray-300 text-sm">
-          <thead>
-            <tr class="bg-gray-100">
-              <th class="border p-2 text-left">School</th>
-              <th class="border p-2 text-left">Initials</th>
-              <th class="border p-2 text-left">Status</th>
-              <th class="border p-2 text-left">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for school in schools %}
+    <!-- Existing Schools -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div><i class="bi bi-list-ul me-2"></i>Existing Schools</div>
+        <span class="badge" style="background: var(--accent-primary);">{{ schools|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
               <tr>
-                <td class="border p-2">{{ school.school_name }}</td>
-                <td class="border p-2">{{ school.school_initials_prefix }}</td>
-                <td class="border p-2">{% if school.is_active %}<span class="text-green-700">Active</span>{% else %}<span class="text-gray-600">Inactive</span>{% endif %}</td>
-                <td class="border p-2 space-x-2">
-                  <form method="post" class="inline">
+                <th>School</th>
+                <th>Initials</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for school in schools %}
+              <tr>
+                <td class="fw-medium">{{ school.school_name }}</td>
+                <td><code>{{ school.school_initials_prefix }}</code></td>
+                <td>
+                  {% if school.is_active %}
+                    <span class="badge bg-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactive</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="post" class="d-inline">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="select_school">
                     <input type="hidden" name="selected_school_id" value="{{ school.pk }}">
-                    <button type="submit" class="bg-indigo-600 text-white px-3 py-1 rounded">Select</button>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Select</button>
                   </form>
                   {% if not school.is_active %}
-                    <form method="post" class="inline">
-                      {% csrf_token %}
-                      <input type="hidden" name="action" value="activate_school">
-                      <input type="hidden" name="selected_school_id" value="{{ school.pk }}">
-                      <button type="submit" class="bg-green-600 text-white px-3 py-1 rounded">Activate</button>
-                    </form>
+                  <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="activate_school">
+                    <input type="hidden" name="selected_school_id" value="{{ school.pk }}">
+                    <button type="submit" class="btn btn-sm btn-success">Activate</button>
+                  </form>
                   {% endif %}
                 </td>
               </tr>
-            {% empty %}
-              <tr><td class="border p-2 text-gray-500" colspan="4">No schools available yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">No schools available yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
-  {% if selected_school %}
-    <div class="mb-8 p-4 bg-blue-50 rounded border">
-      <h2 class="text-xl font-semibold mb-3">Selected School</h2>
-      <p class="text-gray-700"><strong>{{ selected_school.school_name }}</strong> ({{ selected_school.school_initials_prefix }})</p>
-      <p class="text-gray-700">Academic Year: {{ selected_school.active_academic_year }} | Term: {{ selected_school.active_term }}</p>
-      <p class="text-gray-700">Status: {% if selected_school.is_active %}<span class="text-green-700">Active</span>{% else %}<span class="text-yellow-700">Inactive</span>{% endif %}</p>
+  <!-- Right Column - Selected School Details -->
+  <div class="col-lg-6">
+    {% if selected_school %}
+    <!-- Selected School Banner -->
+    <div class="alert mb-4" style="background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color: white; border: none;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <h5 class="mb-1 fw-bold">{{ selected_school.school_name }}</h5>
+          <p class="mb-0 small opacity-75">{{ selected_school.school_initials_prefix }} | {{ selected_school.active_academic_year }} - {{ selected_school.active_term }}</p>
+        </div>
+        {% if selected_school.is_active %}
+          <span class="badge bg-light text-dark">Active</span>
+        {% endif %}
+      </div>
     </div>
 
-    <div class="mb-8 border-b pb-6">
-      <h2 class="text-2xl font-semibold mb-4">Step 2: Add Staff for {{ selected_school.school_initials_prefix }}</h2>
-      <p class="text-sm text-gray-600 mb-3">Create user accounts and assign roles for this school. Staff will log in using the school initials and their username.</p>
-
-      <div class="mb-6">
-        <h3 class="font-semibold mb-3">Existing Staff</h3>
-        <table class="w-full border-collapse border border-gray-300">
-          <thead>
-            <tr class="bg-gray-100">
-              <th class="border p-2 text-left">Username</th>
-              <th class="border p-2 text-left">Email</th>
-              <th class="border p-2 text-left">Role</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for up in staff_users %}
+    <!-- Staff Management -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bi bi-people me-2"></i>Staff Management
+      </div>
+      <div class="card-body">
+        {% if staff_users %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm mb-0">
+            <thead>
               <tr>
-                <td class="border p-2">{{ up.user.username }}</td>
-                <td class="border p-2">{{ up.user.email }}</td>
-                <td class="border p-2">{{ up.get_role_display }}</td>
+                <th>Username</th>
+                <th>Role</th>
               </tr>
-            {% empty %}
-              <tr><td class="border p-2 text-gray-500" colspan="3">No staff users created yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      {% if staff_form.non_field_errors %}
-        <div class="bg-red-50 text-red-800 p-3 rounded mb-4">
-          <ul class="list-disc ml-5">
-            {% for error in staff_form.non_field_errors %}
-              <li>{{ error }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-      <form method="post" class="space-y-3">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_user">
-        <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            {{ staff_form.username }}
-            {{ staff_form.username.errors }}
-          </div>
-          <div>
-            {{ staff_form.email }}
-            {{ staff_form.email.errors }}
-          </div>
-          <div>
-            {{ staff_form.password }}
-            {{ staff_form.password.errors }}
-          </div>
-          <div>
-            {{ staff_form.role }}
-            {{ staff_form.role.errors }}
-          </div>
-        </div>
-        <button type="submit" class="w-full bg-purple-600 text-white px-4 py-2 rounded">Create User</button>
-      </form>
-    </div>
-
-    <div class="mb-8 border-b pb-6">
-      <h2 class="text-2xl font-semibold mb-4">Step 3: Assessment Types</h2>
-      <p class="text-sm text-gray-600 mb-3">Define assessment weights for {{ selected_school.school_name }}.</p>
-      <table class="w-full mb-4 border-collapse border border-gray-300">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="border p-2 text-left">Assessment Type</th>
-            <th class="border p-2 text-left">Weight %</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for a in assessment_types %}
-            <tr>
-              <td class="border p-2">{{ a.name }}</td>
-              <td class="border p-2">{{ a.weight_percentage }}</td>
-            </tr>
-          {% empty %}
-            <tr><td class="border p-2 text-gray-500" colspan="2">No assessment types created yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <form method="post" class="space-y-3">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_assessment">
-        <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
-        <div class="flex space-x-2">
-          <input type="text" name="assessment_name" placeholder="e.g. Mid-Term" class="border rounded px-3 py-2 flex-1">
-          <input type="number" name="assessment_weight" placeholder="Weight %" step="0.01" class="border rounded px-3 py-2 w-24">
-          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Add</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="mb-8 pb-6">
-      <h2 class="text-2xl font-semibold mb-4">Step 4: Fee Structure by Class</h2>
-      <p class="text-sm text-gray-600 mb-3">Define fees for each class/term/year combination for {{ selected_school.school_name }}.</p>
-      <table class="w-full mb-4 border-collapse border border-gray-300">
-        <thead>
-          <tr class="bg-gray-100">
-            <th class="border p-2 text-left">Class</th>
-            <th class="border p-2 text-left">Term</th>
-            <th class="border p-2 text-left">Year</th>
-            <th class="border p-2 text-left">Total Fees</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for fs in fee_structures %}
-            <tr>
-              <td class="border p-2">{{ fs.target_class }}</td>
-              <td class="border p-2">{{ fs.term }}</td>
-              <td class="border p-2">{{ fs.academic_year }}</td>
-              <td class="border p-2">{{ fs.total_fees_required }}</td>
-            </tr>
-          {% empty %}
-            <tr><td class="border p-2 text-gray-500" colspan="4">No fee structures created yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <form method="post" class="space-y-3">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_fee">
-        <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
-        <div class="grid grid-cols-2 gap-2">
-          <input type="text" name="target_class" placeholder="Class (e.g. Form 1A)" class="border rounded px-3 py-2">
-          <input type="text" name="term" placeholder="Term (e.g. T1)" class="border rounded px-3 py-2">
-          <input type="text" name="academic_year" placeholder="Year (e.g. 2026)" class="border rounded px-3 py-2">
-          <input type="number" name="total_fees" placeholder="Total Fees" step="0.01" class="border rounded px-3 py-2">
-        </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded">Add Fee Structure</button>
-      </form>
-    </div>
-
-    <div class="mb-8 pb-6">
-      <h2 class="text-2xl font-semibold mb-4">Step 5: Register Students</h2>
-      <p class="text-sm text-gray-600 mb-3">New students receive an ID using {{ selected_school.school_initials_prefix }} plus the next sequence number.</p>
-      <div class="mb-4 p-4 bg-blue-50 rounded text-blue-800">
-        <strong>Next Student ID:</strong> {{ next_student_id }}
-      </div>
-
-      <div class="mb-6">
-        <h3 class="font-semibold mb-3">Recent Students</h3>
-        <table class="w-full border-collapse border border-gray-300 text-sm">
-          <thead>
-            <tr class="bg-gray-100">
-              <th class="border p-2 text-left">Student ID</th>
-              <th class="border p-2 text-left">Name</th>
-              <th class="border p-2 text-left">Class</th>
-              <th class="border p-2 text-left">Guardian</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for student in students %}
+            </thead>
+            <tbody>
+              {% for up in staff_users %}
               <tr>
-                <td class="border p-2">{{ student.student_id }}</td>
-                <td class="border p-2">{{ student.first_name }} {{ student.last_name }}</td>
-                <td class="border p-2">{{ student.current_class }}</td>
-                <td class="border p-2">{{ student.guardian_name }}</td>
+                <td>{{ up.user.username }}</td>
+                <td><span class="badge bg-secondary">{{ up.get_role_display }}</span></td>
               </tr>
-            {% empty %}
-              <tr><td class="border p-2 text-gray-500" colspan="4">No students registered yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        
+        {% if staff_form.non_field_errors %}
+          <div class="alert alert-danger py-2">{{ staff_form.non_field_errors.0 }}</div>
+        {% endif %}
+        
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_user">
+          <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small">Username</label>
+              {{ staff_form.username }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small">Email</label>
+              {{ staff_form.email }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small">Password</label>
+              {{ staff_form.password }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small">Role</label>
+              {{ staff_form.role }}
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-3">
+            <i class="bi bi-person-plus me-2"></i>Create Staff
+          </button>
+        </form>
       </div>
+    </div>
 
-      {% if student_form.non_field_errors %}
-        <div class="bg-red-50 text-red-800 p-3 rounded mb-4">
-          <ul class="list-disc ml-5">
-            {% for error in student_form.non_field_errors %}
-              <li>{{ error }}</li>
-            {% endfor %}
-          </ul>
+    <!-- Assessment Types -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bi bi-clipboard-check me-2"></i>Assessment Types
+      </div>
+      <div class="card-body">
+        {% if assessment_types %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in assessment_types %}
+              <tr>
+                <td>{{ a.name }}</td>
+                <td>{{ a.weight_percentage }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      {% endif %}
-      <form method="post" enctype="multipart/form-data" class="space-y-3">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="create_student">
-        <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            {{ student_form.first_name }}
-            {{ student_form.first_name.errors }}
-          </div>
-          <div>
-            {{ student_form.last_name }}
-            {{ student_form.last_name.errors }}
-          </div>
-          <div>
-            {{ student_form.date_of_birth }}
-            {{ student_form.date_of_birth.errors }}
-          </div>
-          <div>
-            {{ student_form.gender }}
-            {{ student_form.gender.errors }}
-          </div>
-          <div class="md:col-span-2">
-            {{ student_form.current_class }}
-            {{ student_form.current_class.errors }}
-          </div>
-          <div class="md:col-span-2">
-            {{ student_form.guardian_name }}
-            {{ student_form.guardian_name.errors }}
-          </div>
-          <div>
-            {{ student_form.guardian_phone }}
-            {{ student_form.guardian_phone.errors }}
-          </div>
-          <div>
-            {{ student_form.guardian_email }}
-            {{ student_form.guardian_email.errors }}
-          </div>
-          <div class="md:col-span-2">
-            {{ student_form.address }}
-            {{ student_form.address.errors }}
-          </div>
-          <div class="md:col-span-2">
-            {{ student_form.passport_photo }}
-            {{ student_form.passport_photo.errors }}
-          </div>
+        {% endif %}
+        
+        <form method="post" class="d-flex gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_assessment">
+          <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
+          <input type="text" name="assessment_name" placeholder="e.g. Mid-Term" class="form-control form-control-sm">
+          <input type="number" name="assessment_weight" placeholder="%" class="form-control form-control-sm" style="max-width: 80px;">
+          <button type="submit" class="btn btn-success btn-sm">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Fee Structure -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="bi bi-currency-dollar me-2"></i>Fee Structure
+      </div>
+      <div class="card-body">
+        {% if fee_structures %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Term</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for fs in fee_structures %}
+              <tr>
+                <td>{{ fs.target_class }}</td>
+                <td>{{ fs.term }}</td>
+                <td>{{ fs.total_fees_required }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        <button type="submit" class="w-full bg-teal-600 text-white px-4 py-2 rounded">Register Student</button>
-      </form>
+        {% endif %}
+        
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="create_fee">
+          <input type="hidden" name="selected_school_id" value="{{ selected_school.pk }}">
+          <div class="row g-2">
+            <div class="col-4">
+              <select name="target_class" class="form-select form-select-sm">
+                <option value="">Select Class</option>
+                <option value="S1">S1</option>
+                <option value="S2">S2</option>
+                <option value="S3">S3</option>
+                <option value="S4">S4</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <select name="term" class="form-select form-select-sm">
+                <option value="T1">Term 1</option>
+                <option value="T2">Term 2</option>
+                <option value="T3">Term 3</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <input type="number" name="total_fees" placeholder="Amount" class="form-control form-control-sm">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-2 btn-sm">
+            <i class="bi bi-plus-lg me-2"></i>Add Fee
+          </button>
+        </form>
+      </div>
     </div>
-  {% else %}
-    <div class="bg-yellow-50 p-4 rounded text-yellow-800">
-      <p>Select a school first to add users, assessments, fees, and students.</p>
+
+    <!-- Students Section -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div><i class="bi bi-mortarboard me-2"></i>Students</div>
+        <span class="badge" style="background: var(--warning);">{{ students|length }}</span>
+      </div>
+      <div class="card-body">
+        <div class="alert mb-3" style="background: var(--bg-tertiary); border: 1px solid var(--border-color);">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Next Student ID:</strong> <code>{{ next_student_id }}</code>
+        </div>
+        
+        {% if students %}
+        <div class="table-responsive mb-3">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Class</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in students|slice:":5" %}
+              <tr>
+                <td><code>{{ student.student_id }}</code></td>
+                <td>{{ student.first_name }} {{ student.last_name }}</td>
+                <td>{{ student.current_class }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        
+        <a href="{% url 'core:secretary_enroll' %}" class="btn btn-outline-primary btn-sm w-100">
+          <i class="bi bi-person-plus me-2"></i>Register New Student
+        </a>
+      </div>
     </div>
-  {% endif %}
+    {% else %}
+    <!-- No School Selected -->
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-building fs-1 text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">No School Selected</h5>
+        <p class="text-muted small mb-0">Select a school from the list to manage its staff, students, and settings.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

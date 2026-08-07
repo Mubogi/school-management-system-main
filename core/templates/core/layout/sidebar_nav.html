@@ -1,349 +1,223 @@
-{# Sidebar Navigation - Role Based #}
+{% load feature_tags %}
 
-{% if user_role == "SUPER_ADMIN" or user_role == "SCHOOL_ADMIN" %}
-  {# ADMIN NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Management</p>
-    <a href="{% url 'core:super_admin_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
+{% block sidebar %}
+<aside class="sidebar">
+  <style>
+    .sidebar .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      margin: 0.25rem 0.75rem;
+      border-radius: 10px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+    
+    .sidebar .nav-link:hover {
+      background: var(--bg-tertiary);
+      color: var(--accent-primary);
+    }
+    
+    .sidebar .nav-link.active {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+    }
+    
+    .sidebar .nav-link i {
+      width: 24px;
+      font-size: 1.1rem;
+    }
+    
+    .sidebar .nav-section-title {
+      padding: 1rem 1.5rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+  </style>
+  
+  {% if user_role == "SUPER_ADMIN" or user_role == "SCHOOL_ADMIN" %}
+    <div class="nav-section-title">Management</div>
+    <a href="{% url 'core:super_admin_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
     </a>
-    <a href="{% url 'core:admin_schools' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-cog w-5"></i>
-      <span>School Settings</span>
+    <a href="{% url 'core:admin_schools' %}" class="nav-link">
+      <i class="bi bi-building"></i>
+      <span class="ms-3">School Settings</span>
     </a>
-    <a href="{% url 'core:admin_staff' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-users w-5"></i>
-      <span>Staff</span>
+    <a href="{% url 'core:admin_staff' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">Staff</span>
     </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Academic</p>
-    <a href="{% url 'core:admin_classes' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-layer-group w-5"></i>
-      <span>Classes</span>
+    
+    <div class="nav-section-title">Academic</div>
+    <a href="{% url 'core:admin_classes' %}" class="nav-link">
+      <i class="bi bi-collection"></i>
+      <span class="ms-3">Classes</span>
     </a>
-    <a href="{% url 'core:admin_subjects' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-book w-5"></i>
-      <span>Subjects</span>
+    <a href="{% url 'core:admin_subjects' %}" class="nav-link">
+      <i class="bi bi-book"></i>
+      <span class="ms-3">Subjects</span>
     </a>
-    <a href="{% url 'core:admin_assessments' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tasks w-5"></i>
-      <span>Assessment Types</span>
+    <a href="{% url 'core:admin_assessments' %}" class="nav-link">
+      <i class="bi bi-clipboard-check"></i>
+      <span class="ms-3">Assessments</span>
     </a>
-    <a href="{% url 'core:admin_assignments' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-link w-5"></i>
-      <span>Teacher Assignments</span>
+    
+    <div class="nav-section-title">Finance</div>
+    <a href="{% url 'core:admin_fees' %}" class="nav-link">
+      <i class="bi bi-currency-dollar"></i>
+      <span class="ms-3">Fee Structures</span>
     </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Finance</p>
-    <a href="{% url 'core:admin_fees' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-money-bill-wave w-5"></i>
-      <span>Fee Structures</span>
+    
+    {% if user_role == "SUPER_ADMIN" %}
+    <div class="nav-section-title">All Dashboards</div>
+    <a href="{% url 'core:head_teacher_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="ms-3">Head Teacher</span>
     </a>
-  </div>
-
-  {% if user_role == "SUPER_ADMIN" %}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">All Dashboards</p>
-    <a href="{% url 'core:head_teacher_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-file-alt w-5"></i><span>HT Reports</span>
+    <a href="{% url 'core:dos_reports' %}" class="nav-link">
+      <i class="bi bi-bar-chart"></i>
+      <span class="ms-3">Director of Studies</span>
     </a>
-    <a href="{% url 'core:dos_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-chart-bar w-5"></i><span>DOS Reports</span>
+    <a href="{% url 'core:bursar_dashboard' %}" class="nav-link">
+      <i class="bi bi-wallet2"></i>
+      <span class="ms-3">Bursar</span>
     </a>
-    <a href="{% url 'core:bursar_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-wallet w-5"></i><span>Bursar</span>
+    <a href="{% url 'core:secretary_dashboard' %}" class="nav-link">
+      <i class="bi bi-person-badge"></i>
+      <span class="ms-3">Secretary</span>
     </a>
-    <a href="{% url 'core:secretary_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-user-graduate w-5"></i><span>Secretary</span>
+    
+    <div class="nav-section-title">System Control</div>
+    <a href="{% url 'core:super_admin_control' %}" class="nav-link">
+      <i class="bi bi-shield-check"></i>
+      <span class="ms-3">Control Panel</span>
     </a>
-    <a href="{% url 'core:class_teacher_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-chalkboard w-5"></i><span>Class Teacher</span>
+    <a href="{% url 'core:promotion_rules' %}" class="nav-link">
+      <i class="bi bi-arrow-up-circle"></i>
+      <span class="ms-3">Promotion Rules</span>
     </a>
-  </div>
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">System Control</p>
-    <a href="{% url 'core:super_admin_control' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-shield-alt w-5"></i>
-      <span>Control Panel</span>
+    <a href="{% url 'core:year_end_promotion' %}" class="nav-link">
+      <i class="bi bi-calendar-check"></i>
+      <span class="ms-3">Year-End Promotion</span>
     </a>
-    <a href="{% url 'core:archived_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-archive w-5"></i>
-      <span>Archived Reports</span>
+    {% endif %}
+    
+  {% elif user_role == "HEAD_TEACHER" %}
+    <div class="nav-section-title">Academic</div>
+    <a href="{% url 'core:head_teacher_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
     </a>
-    <a href="{% url 'core:promotion_rules' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-arrow-up w-5"></i>
-      <span>Promotion Rules</span>
+    <a href="{% url 'core:head_teacher_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">All Students</span>
     </a>
-    <a href="{% url 'core:year_end_promotion' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-user-graduate w-5"></i>
-      <span>Year-End Promotion</span>
+    <a href="{% url 'core:head_teacher_classes' %}" class="nav-link">
+      <i class="bi bi-collection"></i>
+      <span class="ms-3">Classes</span>
     </a>
-    <a href="{% url 'core:head_teacher_publish' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-lock w-5"></i>
-      <span>Publish &amp; Lock</span>
+    
+    <div class="nav-section-title">Reports</div>
+    <a href="{% url 'core:head_teacher_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="ms-3">Academic Reports</span>
     </a>
-    <a href="{% url 'core:class_teacher_remarks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-comment w-5"></i>
-      <span>Remarks &amp; Comments</span>
+    <a href="{% url 'core:head_teacher_publish' %}" class="nav-link">
+      <i class="bi bi-lock"></i>
+      <span class="ms-3">Publish & Lock</span>
     </a>
-  </div>
+    
+  {% elif user_role == "BURSAR" %}
+    <div class="nav-section-title">Finance</div>
+    <a href="{% url 'core:bursar_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:bursar_fees' %}" class="nav-link">
+      <i class="bi bi-list-ul"></i>
+      <span class="ms-3">Fee Structures</span>
+    </a>
+    <a href="{% url 'core:bursar_payments' %}" class="nav-link">
+      <i class="bi bi-credit-card"></i>
+      <span class="ms-3">Payments</span>
+    </a>
+    <a href="{% url 'core:bursar_receipts' %}" class="nav-link">
+      <i class="bi bi-receipt"></i>
+      <span class="ms-3">Receipts</span>
+    </a>
+    <a href="{% url 'core:bursar_balances' %}" class="nav-link">
+      <i class="bi bi-scales"></i>
+      <span class="ms-3">Balances</span>
+    </a>
+    <a href="{% url 'core:bursar_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-bar-graph"></i>
+      <span class="ms-3">Reports</span>
+    </a>
+    
+  {% elif user_role == "SECRETARY" %}
+    <div class="nav-section-title">Students</div>
+    <a href="{% url 'core:secretary_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:secretary_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">All Students</span>
+    </a>
+    <a href="{% url 'core:secretary_enroll' %}" class="nav-link">
+      <i class="bi bi-person-plus"></i>
+      <span class="ms-3">Enroll Student</span>
+    </a>
+    
+  {% elif user_role == "DOS" %}
+    <div class="nav-section-title">Academic</div>
+    <a href="{% url 'core:dos_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:dos_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">Students</span>
+    </a>
+    <a href="{% url 'core:dos_classes' %}" class="nav-link">
+      <i class="bi bi-collection"></i>
+      <span class="ms-3">Classes</span>
+    </a>
+    <a href="{% url 'core:dos_reports' %}" class="nav-link">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="ms-3">Reports</span>
+    </a>
+    
+  {% else %}
+    <div class="nav-section-title">Quick Links</div>
+    <a href="/" class="nav-link">
+      <i class="bi bi-house"></i>
+      <span class="ms-3">Home</span>
+    </a>
+    <a href="{% url 'core:search_students' %}" class="nav-link">
+      <i class="bi bi-search"></i>
+      <span class="ms-3">Search Students</span>
+    </a>
   {% endif %}
-
-{% elif user_role == "HEAD_TEACHER" %}
-  {# HEAD TEACHER NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Academic</p>
-    <a href="{% url 'core:head_teacher_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'core:head_teacher_students' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-users w-5"></i>
-      <span>All Students</span>
-    </a>
-    <a href="{% url 'core:head_teacher_classes' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-layer-group w-5"></i>
-      <span>Classes</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reports</p>
-    <a href="{% url 'core:head_teacher_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-file-alt w-5"></i>
-      <span>Academic Reports</span>
-    </a>
-    <a href="{% url 'core:head_teacher_publish' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-lock w-5"></i>
-      <span>Publish & Lock</span>
-    </a>
-    <a href="{% url 'core:class_teacher_remarks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-comment w-5"></i>
-      <span>Remarks & Attendance</span>
-    </a>
-    <a href="{% url 'core:report_notifications' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-paper-plane w-5"></i>
-      <span>Notify Guardians</span>
-    </a>
-    <a href="{% url 'core:promotion_rules' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-arrow-up w-5"></i>
-      <span>Promotion</span>
-    </a>
-    <a href="{% url 'core:archived_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-archive w-5"></i>
-      <span>Archived Reports</span>
-    </a>
-  </div>
-
-{% elif user_role == "CLASS_TEACHER" %}
-  {# CLASS TEACHER NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">My Class</p>
-    <a href="{% url 'core:class_teacher_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'core:class_teacher_students' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-users w-5"></i>
-      <span>Students</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Marks & Performance</p>
-    <a href="{% url 'core:class_teacher_marks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-pencil-alt w-5"></i>
-      <span>Add Marks</span>
-    </a>
-    <a href="{% url 'core:class_teacher_performance' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-chart-line w-5"></i>
-      <span>Class Performance</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reports</p>
-    <a href="{% url 'core:class_teacher_remarks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-comment w-5"></i>
-      <span>Remarks & Attendance</span>
-    </a>
-    <a href="{% url 'core:class_teacher_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-file-alt w-5"></i>
-      <span>Print Reports</span>
-    </a>
-    <a href="{% url 'core:report_notifications' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-paper-plane w-5"></i>
-      <span>Notify Guardians</span>
-    </a>
-  </div>
-
-{% elif user_role == "SUBJECT_TEACHER" %}
-  {# SUBJECT TEACHER NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Teaching</p>
-    <a href="{% url 'core:subject_teacher_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'core:subject_teacher_marks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-pencil-alt w-5"></i>
-      <span>Add Marks</span>
-    </a>
-    <a href="{% url 'core:subject_teacher_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-file-alt w-5"></i>
-      <span>Subject Reports</span>
-    </a>
-  </div>
-
-{% elif user_role == "BURSAR" %}
-  {# BURSAR NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Finance</p>
-    <a href="{% url 'core:bursar_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'core:bursar_fees' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-list w-5"></i>
-      <span>Fee Structures</span>
-    </a>
-    <a href="{% url 'core:bursar_payments' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-credit-card w-5"></i>
-      <span>Payments</span>
-    </a>
-    <a href="{% url 'core:bursar_receipts' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-receipt w-5"></i>
-      <span>Receipts</span>
-    </a>
-    <a href="{% url 'core:bursar_balances' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-balance-scale w-5"></i>
-      <span>Student Balances</span>
-    </a>
-    <a href="{% url 'core:bursar_term_workflow' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-calendar-check w-5"></i>
-      <span>Term & Demands</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reports</p>
-    <a href="{% url 'core:bursar_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-file-alt w-5"></i>
-      <span>Financial Reports</span>
-    </a>
-  </div>
-
-{% elif user_role == "SECRETARY" %}
-  {# SECRETARY NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Students</p>
-    <a href="{% url 'core:secretary_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'core:secretary_students' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-users w-5"></i>
-      <span>All Students</span>
-    </a>
-    <a href="{% url 'core:secretary_enroll' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-user-plus w-5"></i>
-      <span>Enroll Student</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Academics</p>
-    <a href="{% url 'core:secretary_marks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-pencil-alt w-5"></i>
-      <span>Add Marks</span>
-    </a>
-    <a href="{% url 'core:report_notifications' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-paper-plane w-5"></i>
-      <span>Notify Guardians</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Finance</p>
-    <a href="{% url 'core:secretary_payments' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-credit-card w-5"></i>
-      <span>Process Payments</span>
-    </a>
-  </div>
-
-{% elif user_role == "DOS" %}
-  {# DIRECTOR OF STUDIES NAVIGATION #}
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Academic</p>
-    <a href="{% url 'core:dos_dashboard' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-tachometer-alt w-5"></i>
-      <span>Dashboard</span>
-    </a>
-    <a href="{% url 'core:dos_students' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-users w-5"></i>
-      <span>All Students</span>
-    </a>
-    <a href="{% url 'core:dos_classes' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-layer-group w-5"></i>
-      <span>Classes</span>
-    </a>
-  </div>
-
-  <div>
-    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reports</p>
-    <a href="{% url 'core:dos_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-file-alt w-5"></i>
-      <span>Academic Records</span>
-    </a>
-    <a href="{% url 'core:class_teacher_remarks' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-comment w-5"></i>
-      <span>Remarks & Attendance</span>
-    </a>
-    <a href="{% url 'core:report_notifications' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-paper-plane w-5"></i>
-      <span>Notify Guardians</span>
-    </a>
-    <a href="{% url 'core:promotion_rules' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-sitemap w-5"></i>
-      <span>Promotion Rules</span>
-    </a>
-    <a href="{% url 'core:year_end_promotion' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-arrow-up w-5"></i>
-      <span>Year-End Promotion</span>
-    </a>
-    <a href="{% url 'core:archived_reports' %}" class="nav-item flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-blue-50 rounded">
-      <i class="fas fa-archive w-5"></i>
-      <span>Archived Reports</span>
-    </a>
-  </div>
-
-{% endif %}
-
-<!-- COMMON SECTION -->
-<div class="border-t border-gray-200 mt-4 pt-4">
-  <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Student Search</p>
-  <form method="get" action="{% url 'core:search_students' %}" class="px-4 py-2">
-    <div class="flex">
-      <input type="text" name="q" placeholder="Search by name/ID" class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-l">
-      <button type="submit" class="px-3 py-2 bg-blue-500 text-white rounded-r hover:bg-blue-600">
-        <i class="fas fa-search"></i>
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- MOBILE CONNECT SECTION -->
-<div class="px-4 py-3 mt-2">
-  <a href="{% url 'core:qr_connect' %}" class="flex items-center space-x-3 px-4 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg">
-    <i class="fas fa-qrcode w-6 text-lg"></i>
-    <div>
-      <span class="font-semibold block">Connect via Phone</span>
-      <span class="text-xs opacity-80">Scan QR code on mobile</span>
-    </div>
+  
+  <div class="nav-section-title">System</div>
+  <a href="{% url 'core:qr_connect' %}" class="nav-link">
+    <i class="bi bi-qr-code"></i>
+    <span class="ms-3">QR Connect</span>
   </a>
-</div>
+  
+  {% if user.is_superuser %}
+  <a href="{% url 'licensing:management' %}" class="nav-link">
+    <i class="bi bi-shield-lock"></i>
+    <span class="ms-3">License</span>
+  </a>
+  {% endif %}
+</aside>
+{% endblock %}
