@@ -5,6 +5,7 @@ from . import marks_views
 from . import report_workflow_views
 from . import super_admin_views
 from . import sync_views
+from . import master_vendor_views
 
 app_name = 'core'
 
@@ -16,6 +17,23 @@ urlpatterns = [
     path('accounts/logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('student/<str:student_id>/', views.StudentProfileView.as_view(), name='student_profile'),
+
+    # MASTER VENDOR ROUTES (Software Owner Only)
+    path('master-vendor/', master_vendor_views.master_vendor_dashboard, name='master_vendor_dashboard'),
+    path('system/license-status/', master_vendor_views.license_status_view, name='vendor_license_status'),
+    path('system/license-status/apply/', master_vendor_views.apply_upgrade_key, name='vendor_apply_upgrade'),
+    path('master-vendor/schools/', master_vendor_views.vendor_schools, name='vendor_schools'),
+    path('master-vendor/schools/<int:school_id>/toggle/', master_vendor_views.toggle_school_status, name='vendor_toggle_school'),
+    path('master-vendor/users/', master_vendor_views.vendor_users, name='vendor_users'),
+    path('master-vendor/users/<int:user_id>/role/', master_vendor_views.update_user_role, name='vendor_update_user_role'),
+    path('master-vendor/audit/', master_vendor_views.vendor_audit_log, name='vendor_audit_log'),
+    path('master-vendor/feature-matrix/', master_vendor_views.vendor_feature_matrix, name='vendor_feature_matrix'),
+    path('master-vendor/feature-matrix/generate/', master_vendor_views.generate_feature_matrix, name='vendor_generate_matrix'),
+    path('master-vendor/backups/', master_vendor_views.vendor_backups, name='vendor_backups'),
+    path('master-vendor/backups/create/', master_vendor_views.create_manual_backup, name='vendor_create_backup'),
+    path('master-vendor/statistics/', master_vendor_views.vendor_statistics, name='vendor_statistics'),
+    path('master-vendor/branding/', master_vendor_views.vendor_branding, name='vendor_branding'),
+    path('master-vendor/branding/update/', master_vendor_views.update_vendor_branding, name='vendor_update_branding'),
 
     # DASHBOARDS
     path('super-admin/', views.SuperAdminDashboardView.as_view(), name='super_admin_dashboard'),

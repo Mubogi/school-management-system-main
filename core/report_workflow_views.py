@@ -487,9 +487,12 @@ class BulkStudentPromotionView(RoleRequiredMixin, TemplateView):
 # TERMLY RETURN CHECKER
 # ============================================================================
 
-class TermlyReturnCheckerView(LoginRequiredMixin, TemplateView):
+from core.rbac import role_required, ClassTeacherMixin, SecretaryMixin, DOSMixin
+
+class TermlyReturnCheckerView(LoginRequiredMixin, ClassTeacherMixin, TemplateView):
     """
     Class Teacher/Director of Studies view for tracking student returns each term.
+    Accessible by: CLASS_TEACHER, SECRETARY, DOS, HEAD_TEACHER, SCHOOL_ADMIN, MASTER_VENDOR
     """
     template_name = 'core/dos/termly_return_checker.html'
     

@@ -134,6 +134,46 @@
       <span class="ms-3">Publish & Lock</span>
     </a>
     
+  {% elif user_role == "CLASS_TEACHER" %}
+    <div class="nav-section-title">My Class</div>
+    <a href="{% url 'core:class_teacher_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:class_teacher_students' %}" class="nav-link">
+      <i class="bi bi-people"></i>
+      <span class="ms-3">My Students</span>
+    </a>
+    <a href="{% url 'core:termly_return_checker' %}" class="nav-link">
+      <i class="bi bi-arrow-return-left"></i>
+      <span class="ms-3">Termly Return</span>
+    </a>
+    <a href="{% url 'core:class_teacher_remarks' %}" class="nav-link">
+      <i class="bi bi-chat-left-text"></i>
+      <span class="ms-3">Conduct Remarks</span>
+    </a>
+    
+    <div class="nav-section-title">Marks</div>
+    <a href="{% url 'core:class_teacher_marks' %}" class="nav-link">
+      <i class="bi bi-pencil-square"></i>
+      <span class="ms-3">Enter Marks</span>
+    </a>
+    <a href="{% url 'core:class_teacher_performance' %}" class="nav-link">
+      <i class="bi bi-graph-up"></i>
+      <span class="ms-3">Performance</span>
+    </a>
+    
+  {% elif user_role == "SUBJECT_TEACHER" %}
+    <div class="nav-section-title">My Subjects</div>
+    <a href="{% url 'core:subject_teacher_dashboard' %}" class="nav-link">
+      <i class="bi bi-grid-1x2"></i>
+      <span class="ms-3">Dashboard</span>
+    </a>
+    <a href="{% url 'core:subject_teacher_marks' %}" class="nav-link">
+      <i class="bi bi-pencil-square"></i>
+      <span class="ms-3">Enter Marks</span>
+    </a>
+    
   {% elif user_role == "BURSAR" %}
     <div class="nav-section-title">Finance</div>
     <a href="{% url 'core:bursar_dashboard' %}" class="nav-link">
@@ -228,9 +268,18 @@
   </a>
   
   {% if user.is_superuser %}
+  <div class="nav-section-title">Master Vendor</div>
+  <a href="{% url 'core:master_vendor_dashboard' %}" class="nav-link">
+    <i class="bi bi-shield-check" style="color: #dc3545;"></i>
+    <span class="ms-3">Vendor Dashboard</span>
+  </a>
+  <a href="{% url 'core:vendor_license_status' %}" class="nav-link">
+    <i class="bi bi-key"></i>
+    <span class="ms-3">License Status</span>
+  </a>
   <a href="{% url 'licensing:management' %}" class="nav-link">
     <i class="bi bi-shield-lock"></i>
-    <span class="ms-3">License</span>
+    <span class="ms-3">License Manage</span>
   </a>
   {% endif %}
 </aside>
