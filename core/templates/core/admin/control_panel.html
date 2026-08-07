@@ -1,0 +1,448 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}System Control{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-gray-900">Super Admin Control Panel</h2>
+  <p class="text-sm text-gray-600 mt-1">Full system configuration — school, features, terms, grading, users, and promotion.</p>
+  <div class="flex flex-wrap gap-2 mt-4 border-b border-gray-200 pb-2">
+    <a href="?tab=system" class="px-4 py-2 text-sm rounded-t {% if tab == 'system' or not tab %}bg-white border border-b-0 font-semibold text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">System</a>
+    <a href="?tab=backup" class="px-4 py-2 text-sm rounded-t {% if tab == 'backup' %}bg-white border border-b-0 font-semibold text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">Backup</a>
+    <a href="?tab=ids" class="px-4 py-2 text-sm rounded-t {% if tab == 'ids' %}bg-white border border-b-0 font-semibold text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">Student IDs</a>
+    <a href="?tab=connect" class="px-4 py-2 text-sm rounded-t {% if tab == 'connect' %}bg-white border border-b-0 font-semibold text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">Connect Devices</a>
+  </div>
+  {% if school %}
+  <p class="text-sm mt-2">
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium {% if school.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+      School {% if school.is_active %}Active{% else %}Deactivated{% endif %}
+    </span>
+    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ml-2 {% if current_term_locked %}bg-amber-100 text-amber-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+      {{ school.active_term }}/{{ school.active_academic_year }}
+      {% if current_term_locked %}— Locked{% else %}— Open{% endif %}
+    </span>
+  </p>
+  {% endif %}
+</div>
+
+{% if messages %}
+<div class="mb-4 space-y-2">
+  {% for message in messages %}
+  <div class="p-3 rounded text-sm {% if message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if tab == 'backup' %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4"><i class="fas fa-download mr-2"></i>Export &amp; Import Backup</h3>
+    <p class="text-sm text-gray-600 mb-4">Encrypted <strong>.schoolhub</strong> packages include database + media. Legacy .zip also supported.</p>
+    <div class="space-y-3">
+      <a href="{% url 'core:export_schoolhub_backup' %}" class="inline-block px-6 py-3 bg-blue-600 text-white rounded font-medium hover:bg-blue-700">
+        <i class="fas fa-shield-alt mr-2"></i>Download Encrypted (.schoolhub)
+      </a>
+      <a href="{% url 'core:export_system_backup' %}" class="inline-block px-6 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 ml-2">
+        Download .zip
+      </a>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="export_backup_disk">
+        <button type="submit" class="px-6 py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-800">Save to backups/ folder (flash disk)</button>
+      </form>
+    </div>
+    <hr class="my-6">
+    <h4 class="text-sm font-bold text-gray-800 mb-2">Load System Backup (.schoolhub)</h4>
+    <p class="text-xs text-gray-500 mb-3">Validates integrity, snapshots current state for rollback, closes DB handles, restores database + media, then hot-reloads views.</p>
+    <form method="post" enctype="multipart/form-data" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="import_backup">
+      <input type="file" name="backup_file" accept=".schoolhub,.zip" class="border rounded px-3 py-2 w-full text-sm" required>
+      <button type="submit" class="px-6 py-2 bg-amber-600 text-white rounded text-sm hover:bg-amber-700 font-semibold" onclick="return confirm('Load backup will replace current database and media. A rollback snapshot is created first. Continue?')">
+        Load System Backup (.schoolhub)
+      </button>
+    </form>
+  </div>
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4"><i class="fab fa-google-drive mr-2"></i>Google Drive Auto-Sync</h3>
+    <p class="text-sm text-gray-600 mb-4">Automated encrypted backups every {{ school.backup_auto_sync_days|default:7 }} days. Offline backups queue in <code>cloud_outbox/</code> until internet is detected.</p>
+    {% if backup_due %}<p class="text-amber-600 text-sm mb-3">A backup is due.</p>{% endif %}
+    {% if cloud_outbox_count %}<p class="text-blue-600 text-sm mb-3">{{ cloud_outbox_count }} backup(s) waiting in cloud outbox.</p>{% endif %}
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_backup_settings">
+      <div>
+        <label class="text-sm font-medium">Google Drive folder URL</label>
+        {{ backup_form.backup_google_drive_url }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">Drive folder ID</label>
+        {{ backup_form.backup_google_folder_id }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">OAuth2 refresh token</label>
+        {{ backup_form.backup_google_refresh_token }}
+      </div>
+      <label class="flex items-center gap-2 text-sm">{{ backup_form.backup_auto_sync_enabled }} Enable auto-sync reminder</label>
+      <div>
+        <label class="text-sm font-medium">Sync interval (days)</label>
+        {{ backup_form.backup_auto_sync_days }}
+      </div>
+      {% if school.backup_last_export_at %}
+      <p class="text-xs text-gray-500">Last export: {{ school.backup_last_export_at|date:"M d, Y H:i" }}</p>
+      {% endif %}
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Save Backup Settings</button>
+    </form>
+    {% if school.backup_google_drive_url %}
+    <a href="{{ school.backup_google_drive_url }}" target="_blank" class="inline-block mt-4 text-sm text-blue-600 hover:underline">Open Google Drive folder →</a>
+    {% endif %}
+  </div>
+</div>
+<div class="bg-white rounded-lg shadow p-6 mt-6 border-2 border-red-200">
+  <h3 class="text-lg font-semibold mb-2 text-red-700"><i class="fas fa-exclamation-triangle mr-2"></i>Reset Entire System</h3>
+  <p class="text-sm text-gray-600 mb-4">Permanently deletes all students, staff, marks, fees, and settings. Only your Jordan account is kept. Download a backup first.</p>
+  <form method="post" class="space-y-3 max-w-md" onsubmit="return confirm('This will wipe ALL data. Are you absolutely sure?')">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reset_system">
+    <label class="block text-sm font-medium text-gray-700">Type <strong>RESET</strong> to confirm</label>
+    <input type="text" name="reset_confirm" class="border border-red-300 rounded px-3 py-2 w-full" placeholder="RESET" autocomplete="off">
+    <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700">Reset System to Factory Fresh</button>
+  </form>
+</div>
+{% elif tab == 'ids' %}
+<div class="bg-white rounded-lg shadow p-6 mt-6">
+  <h3 class="text-lg font-semibold mb-4"><i class="fas fa-id-card mr-2"></i>Generate Student ID Cards (PDF)</h3>
+  <p class="text-sm text-gray-600 mb-4">Print ID cards grouped on A4 pages. Choose class, count, and cards per page.</p>
+  <form method="get" action="{% url 'core:student_id_cards_pdf' %}" target="_blank" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div>
+      <label class="text-sm font-medium">Class</label>
+      <select name="class" class="border rounded px-3 py-2 w-full">
+        <option value="">All classes</option>
+        {% for c in classes %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="text-sm font-medium">Number of students</label>
+      <select name="limit" class="border rounded px-3 py-2 w-full">
+        <option value="all">All in class</option>
+        <option value="10">First 10</option>
+        <option value="20">First 20</option>
+        <option value="30">First 30</option>
+        <option value="50">First 50</option>
+      </select>
+    </div>
+    <div>
+      <label class="text-sm font-medium">IDs per A4 page</label>
+      <select name="per_page" class="border rounded px-3 py-2 w-full">
+        <option value="4">4 (2×2)</option>
+        <option value="6">6 (2×3)</option>
+        <option value="8" selected>8 (2×4)</option>
+        <option value="10">10 (2×5)</option>
+      </select>
+    </div>
+    <button type="submit" class="px-6 py-3 bg-indigo-600 text-white rounded font-medium hover:bg-indigo-700">
+      <i class="fas fa-file-pdf mr-2"></i>Generate PDF
+    </button>
+  </form>
+</div>
+{% elif tab == 'connect' %}
+<div class="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-4 text-sm text-amber-900">
+  <strong><i class="fas fa-info-circle mr-1"></i>Connection refused?</strong>
+  The server must be started for network access — not the normal localhost-only mode.
+  <ol class="list-decimal ml-5 mt-2 space-y-1">
+    <li>Stop the current server (Ctrl+C in its terminal)</li>
+    <li>Double-click <strong>start_lan_server.bat</strong> in the School_App folder</li>
+    <li>Allow Python through Windows Firewall if Windows asks</li>
+    <li>Phone must be on the <strong>same Wi‑Fi</strong> (not mobile data)</li>
+    <li>Open <strong>http://{{ lan_ip }}:8000/</strong> on the phone</li>
+  </ol>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4"><i class="fas fa-wifi mr-2"></i>Connect Devices (PWA)</h3>
+    <p class="text-sm text-gray-600 mb-4">Other devices on the same Wi‑Fi scan this QR code or open the URL below.</p>
+    <p class="text-sm font-mono bg-gray-100 p-3 rounded mb-2 break-all">{{ network_url }}</p>
+    <p class="text-xs text-gray-500 mb-4">PC IP: <strong>{{ lan_ip }}</strong> · Port: <strong>8000</strong></p>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&amp;data={{ network_url|urlencode }}" alt="QR Code" class="mx-auto border rounded p-2">
+    <p class="text-xs text-gray-500 mt-4 text-center">This PC runs the server; phones/tablets connect over Wi‑Fi.</p>
+  </div>
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold mb-4">PWA &amp; Network Settings</h3>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_backup_settings">
+      <div>
+        <label class="text-sm font-medium">App name (on devices)</label>
+        {{ backup_form.network_app_name }}
+      </div>
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">Save</button>
+    </form>
+    <div class="mt-6 p-4 bg-blue-50 rounded text-sm">
+      <p class="font-medium mb-2">Install on mobile:</p>
+      <ol class="list-decimal ml-4 space-y-1 text-gray-700">
+        <li>Scan QR code while on school Wi‑Fi</li>
+        <li>Open in browser → Add to Home Screen</li>
+        <li>Login with your school credentials</li>
+      </ol>
+    </div>
+    <link rel="manifest" href="{% url 'core:pwa_manifest' %}">
+  </div>
+</div>
+{% else %}
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+  <!-- School activation -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-school mr-2 text-blue-500"></i>School Status</h3>
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_school_status">
+      <label class="flex items-center gap-2 text-sm">{{ school_form.is_active }} School is active (deactivate to block all users)</label>
+      <label class="flex items-center gap-2 text-sm">{{ school_form.carry_fees_on_term_close }} Carry fee demands when closing a term</label>
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Save</button>
+    </form>
+    <hr class="my-4">
+    <p class="text-sm text-gray-600 mb-2">Advanced database admin (Jordan only):</p>
+    <a href="/django-admin/" target="_blank" class="inline-block px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50">
+      <i class="fas fa-database mr-1"></i>Open Django Admin
+    </a>
+  </div>
+
+  <!-- Feature toggles -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-toggle-on mr-2 text-green-500"></i>Feature Controls</h3>
+    <form method="post" class="space-y-2">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_features">
+      <label class="flex items-center gap-2 text-sm">{{ feature_form.feature_student_photos }} Student photos on enrollment</label>
+      <label class="flex items-center gap-2 text-sm">{{ feature_form.feature_reports }} Report cards &amp; PDFs</label>
+      <label class="flex items-center gap-2 text-sm">{{ feature_form.feature_payments }} Payment processing</label>
+      <label class="flex items-center gap-2 text-sm">{{ feature_form.feature_marks_entry }} Marks entry</label>
+      <label class="flex items-center gap-2 text-sm">{{ feature_form.feature_promotion }} Promotion &amp; year-end</label>
+      <label class="flex items-center gap-2 text-sm">{{ feature_form.feature_notifications }} Guardian notifications</label>
+      <button type="submit" class="mt-3 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">Save Features</button>
+    </form>
+  </div>
+
+  <!-- Terminology -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-language mr-2 text-purple-500"></i>Institution Labels</h3>
+    <p class="text-xs text-gray-500 mb-3">Customize how roles and items are named on reports and screens.</p>
+    <form method="post" class="grid grid-cols-2 gap-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_terminology">
+      {% for field in terminology_form %}
+      <div>
+        <label class="text-xs font-medium text-gray-600">{{ field.label }}</label>
+        {{ field }}
+      </div>
+      {% endfor %}
+      <div class="col-span-2">
+        <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700">Save Labels</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Grading & periods -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-graduation-cap mr-2 text-indigo-500"></i>Grading &amp; Academic Periods</h3>
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_grading">
+      <div>
+        <label class="text-sm font-medium">Grading system</label>
+        {{ grading_form.grading_system }}
+      </div>
+      <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">Save Grading</button>
+    </form>
+    <hr class="my-4">
+    <form method="post" class="space-y-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_periods">
+      <div>
+        <label class="text-sm font-medium">Period type</label>
+        {{ period_form.academic_period_type }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">Periods per year</label>
+        {{ period_form.periods_per_year }}
+        <p class="text-xs text-gray-500">Use 3 for terms, 2 for semesters — align labels (T1/T2/T3 or S1/S2).</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium">Active term/semester</label>
+          {{ period_form.active_term }}
+        </div>
+        <div>
+          <label class="text-sm font-medium">Academic year</label>
+          {{ period_form.active_academic_year }}
+        </div>
+      </div>
+      <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700">Save Periods</button>
+    </form>
+  </div>
+
+  <!-- Close term -->
+  <div class="bg-white rounded-lg shadow p-6 xl:col-span-2 border-l-4 border-amber-400">
+    <h3 class="text-lg font-semibold text-gray-900 mb-2"><i class="fas fa-lock mr-2 text-amber-500"></i>Close Term / Semester</h3>
+    <p class="text-sm text-gray-600 mb-4">
+      Closing locks all student records for this period. Only DOS and Head Teacher can view archived reports.
+      Outstanding fee demands can be carried to the next period. Optionally advance to the next term below.
+    </p>
+    {% if current_term_locked %}
+    <form method="post" class="inline">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="unlock_current_term">
+      <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded text-sm hover:bg-amber-700">Unlock Current Term (Override)</button>
+    </form>
+    {% else %}
+    <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="close_term">
+      <div class="md:col-span-2">
+        <label class="text-sm font-medium">Notes</label>
+        <textarea name="close_notes" rows="2" class="border rounded px-3 py-2 w-full" placeholder="Optional notes for archive"></textarea>
+      </div>
+      <label class="flex items-center gap-2 text-sm md:col-span-2">
+        <input type="checkbox" name="carry_fees" checked class="rounded"> Carry fee structures to next period
+      </label>
+      <div>
+        <label class="text-sm font-medium">Advance to term (optional)</label>
+        <input type="text" name="advance_term" class="border rounded px-3 py-2 w-full" placeholder="e.g. T2">
+      </div>
+      <div>
+        <label class="text-sm font-medium">Advance to year (optional)</label>
+        <input type="text" name="advance_year" class="border rounded px-3 py-2 w-full" placeholder="e.g. 2026">
+      </div>
+      <div class="md:col-span-2">
+        <button type="submit" class="px-6 py-2 bg-amber-600 text-white rounded font-medium hover:bg-amber-700" onclick="return confirm('Close and lock this term? Records will become read-only.')">
+          Close &amp; Lock Term
+        </button>
+      </div>
+    </form>
+    {% endif %}
+    {% if term_archives %}
+    <h4 class="text-sm font-semibold mt-6 mb-2">Archived Periods</h4>
+    <ul class="text-sm text-gray-600 space-y-1">
+      {% for arc in term_archives %}
+      <li>{{ arc.term }}/{{ arc.academic_year }} — {{ arc.closed_at|date:"M d, Y" }}
+        {% if arc.records_locked %}<span class="text-amber-600">(locked)</span>{% endif %}
+        {% if arc.fees_carried_forward %}<span class="text-green-600">(fees carried)</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+  <!-- Promotion rules per class -->
+  <div class="bg-white rounded-lg shadow p-6 xl:col-span-2">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-arrow-up mr-2 text-indigo-500"></i>Promotion Rules (Pass Mark per Class)</h3>
+    <form method="post" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 p-4 bg-gray-50 rounded-lg">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_promotion_rule">
+      <div>{{ rule_form.from_class.label_tag }}{{ rule_form.from_class }}</div>
+      <div>{{ rule_form.to_class.label_tag }}{{ rule_form.to_class }}</div>
+      <div>{{ rule_form.pass_mark.label_tag }}{{ rule_form.pass_mark }}</div>
+      <div class="flex items-end">
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 w-full">Add Rule</button>
+      </div>
+    </form>
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">From</th>
+          <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">To</th>
+          <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Pass Mark %</th>
+          <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for rule in promotion_rules %}
+        <tr>
+          <td class="px-4 py-2">{{ rule.from_class }}</td>
+          <td class="px-4 py-2">{{ rule.to_class|default:"Graduate" }}</td>
+          <td class="px-4 py-2">{{ rule.pass_mark|default:"School default" }}</td>
+          <td class="px-4 py-2">
+            <form method="post" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="delete_promotion_rule">
+              <input type="hidden" name="rule_id" value="{{ rule.id }}">
+              <button type="submit" class="text-red-600 text-xs" onclick="return confirm('Remove this rule?')">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">No promotion rules yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href="{% url 'core:promotion_rules' %}" class="inline-block mt-4 text-sm text-blue-600 hover:underline">Manage full promotion workflow →</a>
+  </div>
+
+  <!-- User management -->
+  <div class="bg-white rounded-lg shadow p-6 xl:col-span-2">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4"><i class="fas fa-users-cog mr-2 text-red-500"></i>User Management</h3>
+    <p class="text-sm text-gray-600 mb-4">Activate, deactivate, reset passwords, or remove any user including demo accounts.</p>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">User</th>
+            <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Role</th>
+            <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Status</th>
+            <th class="px-4 py-2 text-left text-xs uppercase text-gray-500">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {% for staff in staff_users %}
+          <tr class="{% if not staff.is_active %}bg-gray-50 opacity-75{% endif %}">
+            <td class="px-4 py-3">
+              <strong>{{ staff.user.username }}</strong><br>
+              <span class="text-gray-500">{{ staff.user.first_name }} {{ staff.user.last_name }}</span>
+            </td>
+            <td class="px-4 py-3">{{ staff.get_role_display }}</td>
+            <td class="px-4 py-3">
+              {% if staff.is_active %}<span class="text-green-600">Active</span>{% else %}<span class="text-red-600">Inactive</span>{% endif %}
+            </td>
+            <td class="px-4 py-3 space-x-2">
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_user">
+                <input type="hidden" name="user_id" value="{{ staff.id }}">
+                <button type="submit" class="text-blue-600 text-xs hover:underline">{% if staff.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+              </form>
+              <form method="post" class="inline-flex items-center gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reset_password">
+                <input type="hidden" name="user_id" value="{{ staff.id }}">
+                <input type="password" name="new_password" placeholder="New password" class="border rounded px-2 py-1 text-xs w-28" minlength="6">
+                <button type="submit" class="text-indigo-600 text-xs hover:underline">Reset</button>
+              </form>
+              {% if staff.user.username != user.username %}
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_user">
+                <input type="hidden" name="user_id" value="{{ staff.id }}">
+                <button type="submit" class="text-red-600 text-xs hover:underline" onclick="return confirm('Permanently delete {{ staff.user.username }}?')">Delete</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <a href="{% url 'core:admin_staff' %}" class="inline-block mt-4 text-sm text-blue-600 hover:underline">Add new staff →</a>
+  </div>
+
+  <!-- Edit remarks (HT, DOS, class teacher) -->
+  <div class="bg-white rounded-lg shadow p-6 xl:col-span-2">
+    <h3 class="text-lg font-semibold text-gray-900 mb-2"><i class="fas fa-comment mr-2 text-gray-500"></i>Edit General Comments</h3>
+    <p class="text-sm text-gray-600 mb-4">Set head teacher, DOS, and class teacher remarks for any student in the active term.</p>
+    <a href="{% url 'core:class_teacher_remarks' %}" class="px-4 py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-800 inline-block">Open Remarks Editor</a>
+    <a href="{% url 'core:archived_reports' %}" class="px-4 py-2 border border-gray-300 rounded text-sm ml-2 inline-block hover:bg-gray-50">View Archived Term Reports</a>
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Subject Reports{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-2xl font-bold text-gray-900 mb-6">Subject Reports</h2>
+
+  <div class="space-y-4">
+    {% for assignment in assignments %}
+    <div class="p-4 border border-gray-200 rounded">
+      <h3 class="font-semibold text-gray-900">{{ assignment.subject.name }} - Class {{ assignment.assigned_class }}</h3>
+      <p class="text-sm text-gray-600 mt-2">Generate performance report for this subject and class.</p>
+      <a href="{% url 'core:subject_performance_pdf' assignment.subject.id %}" target="_blank" class="inline-block mt-3 px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
+        Generate Report PDF
+      </a>
+    </div>
+    {% empty %}
+    <p class="text-gray-500">No subject assignments found</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

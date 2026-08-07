@@ -1,0 +1,17 @@
+{% extends 'school/base.html' %}
+
+{% block content %}
+<h2>Notices</h2>
+<a href="{% url 'notice_create' %}" class="btn btn-primary mb-3">Create Notice</a>
+<ul class="list-group">
+    {% for notice in notices %}
+    <li class="list-group-item">
+        <h5>{{ notice.title }}</h5>
+        <p>{{ notice.content }}</p>
+        <small>{{ notice.created_at }}</small>
+    </li>
+    {% empty %}
+    <li class="list-group-item">No notices available.</li>
+    {% endfor %}
+</ul>
+{% endblock %}

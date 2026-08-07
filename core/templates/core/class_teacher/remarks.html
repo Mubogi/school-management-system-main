@@ -1,0 +1,91 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Report Remarks & Attendance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900">Remarks, Attendance &amp; Conduct</h2>
+    <p class="text-sm text-gray-600 mt-2">
+      Override automatic comments before printing report cards. Leave remark fields blank to use auto-generated text.
+      Term <strong>{{ term }}</strong> / <strong>{{ academic_year }}</strong>
+    </p>
+    {% if can_edit_ht_remarks and classes %}
+    <form method="get" class="flex gap-3 mt-4 items-end">
+      <div>
+        <label class="block text-xs text-gray-500">Class</label>
+        <select name="class" class="border rounded px-3 py-2 text-sm" onchange="this.form.submit()">
+          {% for c in classes %}
+          <option value="{{ c.name }}" {% if c.name == selected_class %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <input type="hidden" name="term" value="{{ term }}">
+      <input type="hidden" name="year" value="{{ academic_year }}">
+    </form>
+    {% endif %}
+    {% if midterm_locked or eot_locked %}
+    <div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded text-sm text-amber-900">
+      {% if midterm_locked %}Mid-term marks are <strong>locked</strong>.{% endif %}
+      {% if eot_locked %} End-of-term marks are <strong>locked</strong>.{% endif %}
+      Contact Head Teacher to unlock for mark corrections.
+    </div>
+    {% endif %}
+  </div>
+
+  {% if student_rows %}
+  <div class="space-y-6">
+    {% for row in student_rows %}
+    <div class="bg-white rounded-lg shadow p-6 border border-gray-100">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h3 class="font-semibold text-gray-900">{{ row.student.first_name }} {{ row.student.last_name }}</h3>
+          <p class="text-xs text-gray-500">{{ row.student.student_id }} — {{ row.student.current_class }}</p>
+        </div>
+        <div class="flex gap-2">
+          <a href="{% url 'core:student_report_pdf_typed' row.student.student_id 'eot' %}" target="_blank" class="text-xs px-2 py-1 bg-indigo-100 text-indigo-800 rounded">Preview PDF</a>
+        </div>
+      </div>
+      <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% csrf_token %}
+        <input type="hidden" name="student_id" value="{{ row.student.pk }}">
+        <input type="hidden" name="term" value="{{ term }}">
+        <input type="hidden" name="year" value="{{ academic_year }}">
+        <div>
+          <label class="block text-xs font-medium text-gray-600">Days Present</label>
+          {{ row.form.days_present }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600">Total School Days</label>
+          {{ row.form.total_school_days }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600">Conduct Rating</label>
+          {{ row.form.conduct_rating }}
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium text-gray-600">Conduct Note</label>
+          {{ row.form.conduct_note }}
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium text-gray-600">Class Teacher Remark</label>
+          {{ row.form.class_teacher_remark }}
+        </div>
+        {% if can_edit_ht_remarks %}
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium text-gray-600">Head Teacher Remark</label>
+          {{ row.form.head_teacher_remark }}
+        </div>
+        {% endif %}
+        <div class="md:col-span-2">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Save</button>
+        </div>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-gray-500">No class selected or no students found.</p>
+  {% endif %}
+</div>
+{% endblock %}

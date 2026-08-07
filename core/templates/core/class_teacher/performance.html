@@ -1,0 +1,45 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Class Performance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Class Performance</h2>
+    {% if assigned_class %}
+    <p class="text-sm text-gray-600">{{ assigned_class.name }} — Term {{ school.active_term }} / {{ school.active_academic_year }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      <div class="p-4 bg-blue-50 border border-blue-200 rounded">
+        <h3 class="font-semibold text-gray-900">Average Score</h3>
+        <p class="text-2xl font-bold text-blue-600 mt-1">{% if average_performance %}{{ average_performance }}%{% else %}N/A{% endif %}</p>
+      </div>
+      <div class="p-4 bg-green-50 border border-green-200 rounded">
+        <h3 class="font-semibold text-gray-900">Marks Recorded</h3>
+        <p class="text-2xl font-bold text-green-600 mt-1">{{ marks_count|default:0 }}</p>
+      </div>
+      <div class="p-4 bg-orange-50 border border-orange-200 rounded">
+        <h3 class="font-semibold text-gray-900">Students with Marks</h3>
+        <p class="text-2xl font-bold text-orange-600 mt-1">{{ students_with_marks|default:0 }} / {{ students|length }}</p>
+      </div>
+    </div>
+
+    {% include "core/includes/analytics_charts.html" %}
+
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a href="{% url 'core:class_term_reports_pdf_typed' assigned_class.name 'eot' %}" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm font-medium">
+        <i class="fas fa-print mr-1"></i>Print All End-of-Term Reports
+      </a>
+      <a href="{% url 'core:class_term_reports_pdf_typed' assigned_class.name 'midterm' %}" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">
+        <i class="fas fa-print mr-1"></i>Print All Mid-Term Reports
+      </a>
+      <a href="{% url 'core:class_teacher_reports' %}" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 text-sm font-medium">
+        Individual Reports
+      </a>
+    </div>
+    {% else %}
+    <p class="text-gray-500 mt-4">You are not assigned to a class yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

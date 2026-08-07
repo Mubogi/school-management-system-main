@@ -1,0 +1,24 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded shadow">
+  <h1 class="text-3xl font-bold mb-4">Welcome to OfficeHub</h1>
+  <p class="mb-4 text-gray-700">Use the links below to access your dashboard after login.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <a href="{% url 'core:login' %}" class="block bg-blue-600 text-white px-4 py-4 rounded shadow">Login</a>
+    <a href="/admin/" class="block bg-gray-100 text-gray-900 px-4 py-4 rounded shadow">Admin</a>
+  </div>
+  <div class="mt-6 text-sm text-gray-600">
+    <p>Use <strong>AIU, JKU, or your school initials</strong> plus your username to log in. For Super Admin access, use <strong>Jordan / 20020120</strong>.</p>
+    <p>After login, navigate to the role-specific dashboard paths:</p>
+    <ul class="list-disc ml-6 mt-2 text-gray-700">
+      <li>/super-admin/</li>
+      <li>/secretary/</li>
+      <li>/bursar/</li>
+      <li>/subject-teacher/</li>
+      <li>/class-teacher/</li>
+      <li>/dos/</li>
+      <li>/head-teacher/</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

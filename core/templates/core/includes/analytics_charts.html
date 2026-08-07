@@ -1,0 +1,75 @@
+{% if chart_data %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <h4 class="text-sm font-semibold text-gray-800 mb-3">Grade Distribution (D1–F9)</h4>
+    <canvas id="chart-grades" height="200"></canvas>
+  </div>
+  <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <h4 class="text-sm font-semibold text-gray-800 mb-3">Scores by Score Range</h4>
+    <canvas id="chart-buckets" height="200"></canvas>
+  </div>
+  {% if chart_data.class_labels %}
+  <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <h4 class="text-sm font-semibold text-gray-800 mb-3">Average Score by Class</h4>
+    <canvas id="chart-classes" height="200"></canvas>
+  </div>
+  {% endif %}
+  {% if chart_data.subject_labels %}
+  <div class="bg-white rounded-lg border border-gray-200 p-4">
+    <h4 class="text-sm font-semibold text-gray-800 mb-3">Top Subjects (Average Score)</h4>
+    <canvas id="chart-subjects" height="200"></canvas>
+  </div>
+  {% endif %}
+</div>
+{{ chart_data|json_script:"analytics-chart-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const el = document.getElementById('analytics-chart-data');
+  if (!el) return;
+  const data = JSON.parse(el.textContent);
+  const palette = ['#1e40af','#2563eb','#3b82f6','#60a5fa','#22c55e','#eab308','#f97316','#ef4444','#94a3b8'];
+
+  if (document.getElementById('chart-grades')) {
+    new Chart(document.getElementById('chart-grades'), {
+      type: 'bar',
+      data: {
+        labels: data.grade_labels,
+        datasets: [{ label: 'Students', data: data.grade_values, backgroundColor: palette }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+  }
+  if (document.getElementById('chart-buckets')) {
+    new Chart(document.getElementById('chart-buckets'), {
+      type: 'doughnut',
+      data: {
+        labels: data.score_bucket_labels,
+        datasets: [{ data: data.score_bucket_values, backgroundColor: palette }]
+      },
+      options: { responsive: true }
+    });
+  }
+  if (document.getElementById('chart-classes') && data.class_labels.length) {
+    new Chart(document.getElementById('chart-classes'), {
+      type: 'line',
+      data: {
+        labels: data.class_labels,
+        datasets: [{ label: 'Avg %', data: data.class_values, borderColor: '#1e40af', backgroundColor: 'rgba(30,64,175,0.1)', fill: true, tension: 0.3 }]
+      },
+      options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+    });
+  }
+  if (document.getElementById('chart-subjects') && data.subject_labels.length) {
+    new Chart(document.getElementById('chart-subjects'), {
+      type: 'bar',
+      data: {
+        labels: data.subject_labels,
+        datasets: [{ label: 'Avg %', data: data.subject_values, backgroundColor: '#047857' }]
+      },
+      options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: 0, max: 100 } } }
+    });
+  }
+})();
+</script>
+{% endif %}

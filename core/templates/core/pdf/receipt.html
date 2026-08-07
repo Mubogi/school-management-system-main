@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A5 portrait; margin: 1cm; }
+    body { font-family: 'Segoe UI', sans-serif; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 4px 6px; vertical-align: top; }
+    .amount { font-size: 14px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  {% include "core/pdf/letterhead.html" %}
+  <h2 style="text-align:center; font-size:14px;">OFFICIAL PAYMENT RECEIPT</h2>
+  <p style="text-align:center;">Receipt: <strong>{{ payment.unique_receipt_id }}</strong></p>
+  <table>
+    <tr><td>Date</td><td>{{ payment.date_of_payment|date:"F j, Y H:i" }}</td></tr>
+    <tr><td>Student</td><td>{{ payment.student.first_name }} {{ payment.student.last_name }} ({{ payment.student.student_id }})</td></tr>
+    <tr><td>Class</td><td>{{ payment.student.current_class }}</td></tr>
+    <tr><td>Term / Year</td><td>{{ payment.term }} / {{ payment.academic_year }}</td></tr>
+    <tr><td>Mode</td><td>{{ payment.get_payment_mode_display }}</td></tr>
+    <tr><td>Term fees</td><td>Ushs {{ total_fees }}</td></tr>
+    <tr><td>Paid now</td><td class="amount">Ushs {{ payment.amount_paid }}</td></tr>
+    <tr><td>Total paid</td><td>Ushs {{ total_paid_after }}</td></tr>
+    <tr><td><strong>Balance</strong></td><td class="amount">Ushs {{ payment.balance_remaining }}</td></tr>
+  </table>
+</body>
+</html>

@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pyre/
+.pytype/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+*.pot
+*.mo
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+pip-selfcheck.json
+
+# IDE/editor
+.vscode/
+.idea/
+*.suo
+*.swp
+*.bak
+*~
+.project
+.metadata
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated reports and test files
+sample_reportcard_chromium.pdf
+sample_reportcard_modern.pdf
+tmp_playwright_test.py
+
+# Upload directories
+notesUploads/
+noticeUploads/
+studentUploads/
+syllabusUploads/
+teacherUploads/
+
+# Misc
+cloud_outbox/

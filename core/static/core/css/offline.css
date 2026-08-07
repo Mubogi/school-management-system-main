@@ -1,0 +1,20 @@
+/* Offline-first styles for login / landing (no CDN required) */
+.login-page {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #eef2ff;
+  background-image: url('/static/core/img/login-bg.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.login-card {
+  max-width: 28rem;
+  width: 100%;
+  background: #fff;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(30, 58, 138, 0.12);
+  padding: 2rem;
+}

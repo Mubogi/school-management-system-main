@@ -1,0 +1,61 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Manage Classes{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-2xl font-bold text-gray-900 mb-6">Class Management</h2>
+
+  <div class="mb-8 p-6 bg-blue-50 rounded-lg">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Class</h3>
+    <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {% csrf_token %}
+      <div>
+        {{ class_form.name.label_tag }}
+        {{ class_form.name }}
+        {% if class_form.name.errors %}<span class="text-red-600 text-sm">{{ class_form.name.errors.0 }}</span>{% endif %}
+      </div>
+      <div>
+        {{ class_form.description.label_tag }}
+        {{ class_form.description }}
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+          Add Class
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class Name</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class Teacher</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Count</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        {% for row in class_rows %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 font-medium text-gray-900">{{ row.school_class.name }}</td>
+          <td class="px-6 py-4 text-gray-700">
+            {% if row.class_teacher %}
+              {{ row.class_teacher.user.first_name }} {{ row.class_teacher.user.last_name }}
+            {% else %}
+              Unassigned
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-gray-700">{{ row.students_count }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="px-6 py-4 text-center text-gray-500">No classes found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

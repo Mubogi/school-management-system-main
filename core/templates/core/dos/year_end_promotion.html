@@ -1,0 +1,68 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Year-End Promotion{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900">Year-End Promotion</h2>
+    <p class="text-sm text-gray-600 mt-2">
+      Active year: <strong>{{ school.active_academic_year }}</strong> | Term: <strong>{{ school.active_term }}</strong>.
+      This will move students per <a href="{% url 'core:promotion_rules' %}" class="text-blue-600 underline">promotion rules</a>, graduate final-year classes, and set the new academic year.
+    </p>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6 overflow-x-auto">
+    <h3 class="font-semibold mb-4">Preview</h3>
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left">From</th>
+          <th class="px-4 py-2 text-left">To</th>
+          <th class="px-4 py-2 text-left">Students</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y">
+        {% for block in preview %}
+        <tr class="{% if not block.has_rule %}bg-amber-50{% endif %}">
+          <td class="px-4 py-3 font-medium">{{ block.from_class }}</td>
+          <td class="px-4 py-3">
+            {% if block.will_graduate %}<span class="text-purple-700">Graduate</span>
+            {% elif block.has_rule %}{{ block.to_class }}
+            {% else %}<span class="text-amber-700">No rule — unchanged</span>{% endif %}
+          </td>
+          <td class="px-4 py-3">{{ block.count }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="text-center py-6 text-gray-500">No active students.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bg-red-50 border border-red-200 rounded-lg p-6 max-w-xl">
+    <h3 class="font-semibold text-red-900">Run Promotion</h3>
+    <form method="post" class="space-y-4 mt-4">
+      {% csrf_token %}
+      <div>{{ form.to_academic_year.label_tag }}{{ form.to_academic_year }}</div>
+      <div>{{ form.reset_term.label_tag }}{{ form.reset_term }}</div>
+      <div class="flex items-start gap-2">{{ form.confirm }} <label for="id_confirm" class="text-sm text-red-900">{{ form.confirm.label }}</label></div>
+      <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700"
+        onclick="return confirm('This cannot be undone easily. Promote all students now?');">
+        Run Year-End Promotion
+      </button>
+    </form>
+  </div>
+
+  {% if past_runs %}
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="font-semibold mb-3">Past Runs</h3>
+    <ul class="text-sm space-y-2">
+      {% for run in past_runs %}
+      <li class="text-gray-700">{{ run.run_at|date:"M d, Y H:i" }} — {{ run.from_academic_year }}→{{ run.to_academic_year }}: {{ run.students_promoted }} promoted, {{ run.students_graduated }} graduated</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

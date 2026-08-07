@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 1.5cm; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 11px; }
+    .header { text-align: center; border-bottom: 2px solid #047857; padding-bottom: 12px; margin-bottom: 16px; }
+    .header h1 { color: #065f46; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+    th { background: #047857; color: #fff; }
+    .summary-box { display: table; width: 100%; margin: 16px 0; }
+    .box { display: table-cell; width: 33%; padding: 12px; background: #f0fdf4; border: 1px solid #86efac; text-align: center; }
+    .box strong { display: block; font-size: 16px; color: #065f46; margin-top: 4px; }
+    .outstanding { color: #b91c1c; }
+    .cleared { color: #047857; }
+  </style>
+  <title>Financial Statement</title>
+</head>
+<body>
+  {% include "core/pdf/letterhead.html" %}
+  <p style="text-align:center;"><strong>Student Financial Statement</strong></p>
+  <p style="text-align:center;">Term {{ term }} | Academic Year {{ academic_year }}</p>
+
+  <p><strong>Student:</strong> {{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})<br>
+  <strong>Class:</strong> {{ student.current_class }}<br>
+  <strong>Guardian:</strong> {{ student.guardian_name|default:"—" }} | {{ student.guardian_phone|default:"—" }}</p>
+
+  <div class="summary-box">
+    <div class="box">
+      <span>Total Fees Required</span>
+      <strong>Ushs {{ total_required }}</strong>
+    </div>
+    <div class="box">
+      <span>Total Paid</span>
+      <strong>Ushs {{ total_paid }}</strong>
+    </div>
+    <div class="box">
+      <span>Balance</span>
+      <strong class="{% if balance and balance > 0 %}outstanding{% else %}cleared{% endif %}">
+        {% if balance is not None %}Ushs {{ balance }}{% else %}N/A{% endif %}
+      </strong>
+    </div>
+  </div>
+
+  {% if fee_breakdown %}
+  <h3>Fee Types</h3>
+  <table>
+    <thead><tr><th>Fee Type</th><th>Required</th><th>Paid</th><th>Balance</th></tr></thead>
+    <tbody>
+      {% for row in fee_breakdown %}
+      <tr>
+        <td>{{ row.fee_type }}</td>
+        <td>Ushs {{ row.required }}</td>
+        <td>Ushs {{ row.paid }}</td>
+        <td class="{% if row.balance and row.balance > 0 %}outstanding{% else %}cleared{% endif %}">Ushs {{ row.balance|default:"0.00" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% elif fee_items %}
+  <h3>Fee Breakdown</h3>
+  <table>
+    <thead><tr><th>Item</th><th>Amount (Ushs)</th></tr></thead>
+    <tbody>
+      {% for item in fee_items %}
+      <tr><td>{{ item.name }}</td><td>{{ item.amount }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <h3>Payment History</h3>
+  <table>
+    <thead>
+      <tr><th>Receipt No.</th><th>Date</th><th>Amount Paid</th><th>Balance After</th></tr>
+    </thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.unique_receipt_id }}</td>
+        <td>{{ p.date_of_payment|date:"M d, Y" }}</td>
+        <td>Ushs {{ p.amount_paid }}</td>
+        <td>Ushs {{ p.balance_remaining }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;">No payments recorded for this term.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "core/pdf/pdf_footer.html" %}
+</body>
+</html>

@@ -1,0 +1,62 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Outstanding Balances{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-900">Outstanding Balances</h2>
+      <p class="text-sm text-gray-600 mt-1">Review current student fee balances for {{ school.school_name }}</p>
+    </div>
+    <div class="flex gap-3">
+      <a href="{% url 'core:bursar_fee_report_pdf' %}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Download Fee Report PDF</a>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+      <p class="text-gray-600 text-sm">Total Outstanding</p>
+      <p class="text-3xl font-bold text-red-600 mt-2">USHS {{ total_outstanding }}</p>
+    </div>
+    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+      <p class="text-gray-600 text-sm">Students with Balances</p>
+      <p class="text-3xl font-bold text-orange-600 mt-2">{{ total_students }}</p>
+    </div>
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <p class="text-gray-600 text-sm">Sort by</p>
+      <div class="mt-2 flex gap-2">
+        <a href="?sort=name" class="px-3 py-1 bg-gray-100 rounded text-sm text-gray-700">Name</a>
+        <a href="?sort=balance" class="px-3 py-1 bg-gray-100 rounded text-sm text-gray-700">Balance</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Outstanding</th>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        {% for entry in student_balances %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium text-gray-900">{{ entry.student.first_name }} {{ entry.student.last_name }}</td>
+            <td class="px-6 py-4 text-gray-700">USHS {{ entry.balance }}</td>
+            <td class="px-6 py-4">
+              <a href="{% url 'core:bursar_demand_letter_pdf' entry.student.student_id %}" class="text-indigo-600 hover:text-indigo-900">Demand letter</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3" class="px-6 py-4 text-gray-500">No students with outstanding balances.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

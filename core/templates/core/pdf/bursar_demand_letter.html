@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Demand Letter</title>
+  <style>
+    @page { size: A4; margin: 1.5cm; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 12px; line-height: 1.5; }
+    .amount-box { background: #fef2f2; border: 2px solid #fca5a5; padding: 16px; margin: 20px 0; text-align: center; }
+    .amount-box strong { font-size: 20px; color: #b91c1c; }
+  </style>
+</head>
+<body>
+  {% include "core/pdf/letterhead.html" %}
+  <p style="text-align:right;">{% now "F j, Y" %}</p>
+  <p><strong>FEE DEMAND LETTER</strong> — Term {{ term }} / {{ academic_year }}</p>
+
+  <p>Dear {{ student.guardian_name|default:"Parent/Guardian" }},</p>
+  <p>
+    This is a formal request for payment of outstanding school fees for your ward,
+    <strong>{{ student.first_name }} {{ student.last_name }}</strong> ({{ student.student_id }}), Class {{ student.current_class }}.
+  </p>
+
+  <div class="amount-box">
+    <span>Outstanding Balance</span><br>
+    <strong>Ushs {{ balance }}</strong>
+  </div>
+
+  <p>Fee summary: Required <strong>Ushs {{ total_required }}</strong> | Paid <strong>Ushs {{ total_paid }}</strong></p>
+  <p>Please settle the balance promptly to avoid disruption to the student's academic activities.</p>
+
+  <p style="margin-top: 32px;">Yours faithfully,</p>
+  <p><strong>{{ school.bursar_name|default:"The Bursar" }}</strong><br>{{ school.school_name }}</p>
+  {% include "core/pdf/pdf_footer.html" %}
+</body>
+</html>

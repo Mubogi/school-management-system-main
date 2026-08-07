@@ -1,0 +1,87 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Class Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <!-- Stats Cards -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">My Class</p>
+        <p class="text-2xl font-bold text-gray-900">{% if assigned_class %}{{ assigned_class.name }}{% else %}Not Assigned{% endif %}</p>
+      </div>
+      <i class="fas fa-layer-group text-4xl text-blue-200"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Total Students</p>
+        <p class="text-3xl font-bold text-gray-900">{{ students.count }}</p>
+      </div>
+      <i class="fas fa-users text-4xl text-green-200"></i>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-gray-500 text-sm">Subjects Taught</p>
+        <p class="text-3xl font-bold text-gray-900">4</p>
+      </div>
+      <i class="fas fa-book text-4xl text-purple-200"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Class Students -->
+  <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Class Students</h3>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for student in students|slice:":10" %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium text-gray-900">{{ student.student_id }}</td>
+            <td class="px-6 py-4 text-gray-700">{{ student.first_name }} {{ student.last_name }}</td>
+            <td class="px-6 py-4">
+              <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">Active</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+    <div class="space-y-3">
+      <a href="{% url 'core:class_teacher_students' %}" class="block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-center text-sm font-medium">
+        <i class="fas fa-users mr-2"></i>View Students
+      </a>
+      <a href="{% url 'core:class_teacher_marks' %}" class="block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-center text-sm font-medium">
+        <i class="fas fa-pencil-alt mr-2"></i>Add Marks
+      </a>
+      <a href="{% url 'core:class_teacher_performance' %}" class="block px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 text-center text-sm font-medium">
+        <i class="fas fa-chart-line mr-2"></i>Performance
+      </a>
+      <a href="{% url 'core:class_teacher_reports' %}" class="block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-center text-sm font-medium">
+        <i class="fas fa-file-alt mr-2"></i>Reports
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

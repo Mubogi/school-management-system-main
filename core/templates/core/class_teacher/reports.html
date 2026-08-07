@@ -1,0 +1,59 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Class Reports{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6 space-y-6">
+  <h2 class="text-2xl font-bold text-gray-900">Class Reports</h2>
+
+  {% if assigned_class %}
+  <div class="p-4 border border-blue-200 bg-blue-50 rounded-lg mb-4">
+    <p class="text-sm text-blue-900">
+      <strong>Step 1:</strong> Edit <a href="{% url 'core:class_teacher_remarks' %}" class="underline font-medium">remarks, attendance &amp; conduct</a> for each student.
+      <strong>Step 2:</strong> Head Teacher publishes reports to lock marks.
+      <strong>Step 3:</strong> Print or <a href="{% url 'core:report_notifications' %}" class="underline font-medium">notify guardians</a>.
+    </p>
+  </div>
+  <div class="p-5 border-2 border-indigo-200 bg-indigo-50 rounded-lg">
+    <h3 class="font-semibold text-gray-900 text-lg">Print All Reports — One Click</h3>
+    <p class="text-sm text-gray-600 mt-1">Downloads a single PDF with every student’s report card, marks, final scores, and automatic class teacher &amp; head teacher comments for <strong>{{ assigned_class.name }}</strong>.</p>
+    <div class="flex flex-wrap gap-3 mt-4">
+      <a href="{% url 'core:class_term_reports_pdf_typed' assigned_class.name 'eot' %}" target="_blank" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium">
+        <i class="fas fa-file-pdf mr-2"></i>End of Term — All Students
+      </a>
+      <a href="{% url 'core:class_term_reports_pdf_typed' assigned_class.name 'midterm' %}" target="_blank" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+        <i class="fas fa-file-pdf mr-2"></i>Mid-Term — All Students
+      </a>
+    </div>
+  </div>
+
+  <div class="p-4 border border-gray-200 rounded">
+    <h3 class="font-semibold text-gray-900">Class Broadsheet</h3>
+    <p class="text-sm text-gray-600 mt-1">Summary matrix of all subjects and grades.</p>
+    <a href="{% url 'core:class_broadsheet_pdf' assigned_class.name %}" target="_blank" class="inline-block mt-3 px-4 py-2 bg-gray-700 text-white rounded text-sm hover:bg-gray-800">
+      Download Broadsheet PDF
+    </a>
+  </div>
+
+  <div class="p-4 border border-gray-200 rounded">
+    <h3 class="font-semibold text-gray-900">Individual Student Reports</h3>
+    <div class="mt-4 space-y-2 max-h-96 overflow-y-auto">
+      {% for student in students %}
+      <div class="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-gray-100">
+        <span class="text-gray-800">{{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})</span>
+        <div class="flex gap-2">
+          <a href="{% url 'core:student_report_pdf_typed' student.student_id 'midterm' %}" target="_blank" class="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600">Mid-Term</a>
+          <a href="{% url 'core:student_report_pdf_typed' student.student_id 'eot' %}" target="_blank" class="px-3 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700">End of Term</a>
+          <a href="{% url 'core:student_profile' student.student_id %}" class="px-3 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">Profile</a>
+        </div>
+      </div>
+      {% empty %}
+      <p class="text-gray-500 text-sm">No students in this class.</p>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-gray-500">You are not assigned to a class yet. Contact the school admin.</p>
+  {% endif %}
+</div>
+{% endblock %}

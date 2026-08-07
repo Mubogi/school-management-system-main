@@ -1,0 +1,23 @@
+{# School headed paper — center-aligned logo, name, contacts #}
+<div class="letterhead" style="text-align:center; border-bottom:2px solid #1e40af; padding-bottom:10px; margin-bottom:12px;">
+  {% if school_logo_uri %}
+  <img src="{{ school_logo_uri }}" alt="{{ school.school_name }}" style="height:64px; margin:0 auto 8px; display:block;">
+  {% elif school.logo %}
+  <img src="{{ school.logo.url }}" alt="{{ school.school_name }}" style="height:64px; margin:0 auto 8px; display:block;">
+  {% endif %}
+  <h1 style="margin:2px 0; font-size:20px; color:#1e3a8a; text-align:center;">{{ school.school_name }}</h1>
+  {% if school.motto %}<p style="margin:2px 0; font-style:italic; color:#4b5563; font-size:11px;">{{ school.motto }}</p>{% endif %}
+  <p style="margin:4px 0; font-size:10px; color:#374151;">
+    {% if school.address %}{{ school.address }}{% endif %}
+    {% if school.phone %} | Tel: {{ school.phone }}{% endif %}
+    {% if school.email %} | {{ school.email }}{% endif %}
+    {% if school.website %} | {{ school.website }}{% endif %}
+  </p>
+  {% if school.head_teacher_name or school.bursar_name or school.dos_name %}
+  <p style="margin:4px 0; font-size:9px; color:#6b7280;">
+    {% if school.head_teacher_name %}Head Teacher: {{ school.head_teacher_name }}{% endif %}
+    {% if school.bursar_name %} | Bursar: {{ school.bursar_name }}{% endif %}
+    {% if school.dos_name %} | DOS: {{ school.dos_name }}{% endif %}
+  </p>
+  {% endif %}
+</div>

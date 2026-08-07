@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+  <title>{% block title %}Jordan Hub School System{% endblock %}</title>
+  <link rel="icon" href="{% static 'core/favicon.ico' %}" type="image/x-icon">
+  <link rel="apple-touch-icon" href="{% static 'core/icon-192.png' %}">
+  <link href="{% static 'core/css/tailwind.min.css' %}" rel="stylesheet">
+  <link href="{% static 'core/css/icons.css' %}" rel="stylesheet">
+  <link href="{% static 'core/css/offline.css' %}" rel="stylesheet">
+  <link rel="manifest" href="{% url 'core:pwa_manifest' %}">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jordan Hub">
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui; }
+    .app-shell { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
+    .sidebar {
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+    }
+    .main-content {
+      transition: margin 0.3s ease;
+      min-width: 0;
+      flex: 1 1 0%;
+    }
+    .nav-item { transition: all 0.2s ease; }
+    .nav-item:hover { padding-left: 1.5rem; }
+    .nav-item.active { background-color: rgba(59, 130, 246, 0.1); border-right: 4px solid #3b82f6; }
+    .submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .submenu.open { max-height: 500px; }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 40;
+    }
+    .sidebar-overlay.visible { display: block; }
+
+    /* Mobile: sidebar slides over content, hidden by default */
+    @media (max-width: 767px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 50;
+        width: min(280px, 88vw);
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .main-content {
+        width: 100%;
+        margin-left: 0 !important;
+      }
+      .page-inner {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-top: 1rem !important;
+        padding-bottom: 1.5rem !important;
+      }
+      .topbar-title {
+        font-size: 1rem;
+        line-height: 1.25rem;
+        max-width: 55vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    /* Desktop: sidebar in layout; optional collapse */
+    @media (min-width: 768px) {
+      .sidebar {
+        position: relative;
+        width: 16rem;
+        transform: none !important;
+      }
+      .sidebar.desktop-collapsed {
+        position: fixed;
+        transform: translateX(-100%) !important;
+      }
+      .main-content.desktop-expanded {
+        margin-left: 0;
+      }
+    /* Tables scroll horizontally on small screens */
+    .page-inner table {
+      display: block;
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 767px) {
+      .page-inner .overflow-x-auto { margin-left: -0.25rem; margin-right: -0.25rem; }
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+  <script src="{% static 'core/js/offline-sync.js' %}" defer></script>
+</head>
+<body class="bg-gray-50">
+  <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <aside id="appSidebar" class="sidebar bg-white shadow-lg flex flex-col" aria-label="Main navigation">
+      <div class="p-4 md:p-6 border-b border-gray-200 flex items-center justify-between">
+        <div class="flex items-center space-x-3 min-w-0">
+          {% if school and school.logo %}
+            <img src="{{ school.logo.url }}" alt="{{ school.school_name }}" class="h-10 w-10 object-contain flex-shrink-0">
+          {% else %}
+            <img src="{% static 'core/icon-192.png' %}" alt="Jordan Hub" class="h-10 w-10 object-contain flex-shrink-0 rounded">
+          {% endif %}
+          <div class="min-w-0">
+            <div class="font-bold text-gray-900 text-sm truncate">{{ school.school_name|default:"Jordan Hub" }}</div>
+            <div class="text-xs text-gray-500 truncate">{{ user_role }}</div>
+          </div>
+        </div>
+        <button type="button" id="sidebarClose" class="md:hidden p-2 text-gray-500 hover:bg-gray-100 rounded" aria-label="Close menu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <nav class="flex-1 overflow-y-auto p-3 md:p-4 space-y-2">
+        {% include "core/layout/sidebar_nav.html" %}
+      </nav>
+
+      <div class="p-3 md:p-4 border-t border-gray-200 space-y-2">
+        <p class="text-xs text-gray-400 text-center px-2 pb-2 hidden sm:block">Jordan Design Hub &middot; +256 754 687597</p>
+        <a href="{% url 'core:profile' %}" class="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded nav-item">
+          <i class="fas fa-user w-5"></i>
+          <span class="text-sm">Profile</span>
+        </a>
+        <form method="post" action="{% url 'core:logout' %}" class="w-full">
+          {% csrf_token %}
+          <button type="submit" class="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded nav-item">
+            <i class="fas fa-sign-out-alt w-5"></i>
+            <span class="text-sm">Logout</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <div id="mainContent" class="main-content flex flex-col overflow-hidden">
+      <header class="bg-white shadow flex-shrink-0">
+        <div class="px-3 md:px-6 py-3 md:py-4 flex items-center justify-between gap-2">
+          <div class="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
+            <button type="button" id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded text-gray-600 flex-shrink-0" aria-label="Open menu">
+              <i class="fas fa-bars text-lg"></i>
+            </button>
+            <h1 class="topbar-title text-xl font-semibold text-gray-900">{% block page_title %}Dashboard{% endblock %}</h1>
+          </div>
+          <div class="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+            <div class="text-right hidden md:block">
+              <div class="text-sm font-medium text-gray-900">{{ user.first_name|default:user.username }}</div>
+              <div class="text-xs text-gray-500">{{ current_date }}</div>
+            </div>
+            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=3b82f6&color=fff" alt="" class="h-9 w-9 md:h-10 md:w-10 rounded-full">
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto overflow-x-hidden">
+        <div class="page-inner container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-full">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="mb-4 p-4 rounded text-sm {% if message.tags %}bg-{{ message.tags }}-100 text-{{ message.tags }}-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var sidebar = document.getElementById('appSidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      var main = document.getElementById('mainContent');
+      var toggle = document.getElementById('sidebarToggle');
+      var closeBtn = document.getElementById('sidebarClose');
+
+      function isMobile() {
+        return window.matchMedia('(max-width: 767px)').matches;
+      }
+
+      function openMobileSidebar() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMobileSidebar() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('visible');
+        document.body.style.overflow = '';
+      }
+
+      function toggleDesktopSidebar() {
+        sidebar.classList.toggle('desktop-collapsed');
+        main.classList.toggle('desktop-expanded');
+      }
+
+      toggle.addEventListener('click', function () {
+        if (isMobile()) {
+          if (sidebar.classList.contains('mobile-open')) {
+            closeMobileSidebar();
+          } else {
+            openMobileSidebar();
+          }
+        } else {
+          toggleDesktopSidebar();
+        }
+      });
+
+      closeBtn.addEventListener('click', closeMobileSidebar);
+      overlay.addEventListener('click', closeMobileSidebar);
+
+      document.querySelectorAll('.sidebar a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          if (isMobile()) closeMobileSidebar();
+        });
+      });
+
+      window.addEventListener('resize', function () {
+        if (!isMobile()) {
+          closeMobileSidebar();
+        } else {
+          sidebar.classList.remove('desktop-collapsed');
+          main.classList.remove('desktop-expanded');
+        }
+      });
+
+      document.querySelectorAll('[data-submenu-toggle]').forEach(function (toggleEl) {
+        toggleEl.addEventListener('click', function (e) {
+          e.preventDefault();
+          var submenu = this.nextElementSibling;
+          if (submenu) submenu.classList.toggle('open');
+          var chevron = this.querySelector('i.fa-chevron-right');
+          if (chevron) chevron.classList.toggle('rotate-90');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

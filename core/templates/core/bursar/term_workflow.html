@@ -1,0 +1,61 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Term & Fee Demands{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-3xl">
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900">Term Opening Workflow</h2>
+    <p class="text-sm text-gray-600 mt-2">
+      <strong>1.</strong> Issue fee demands to all students →
+      <strong>2.</strong> Record payments (receipts show outstanding balance) →
+      <strong>3.</strong> Open term for marks &amp; academics.
+    </p>
+    <p class="mt-4 text-sm">Current: Term <strong>{{ school.active_term }}</strong> / {{ school.active_academic_year }}</p>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-6 space-y-4">
+    <div class="flex items-center justify-between p-4 border rounded {% if school.fees_demanded %}bg-green-50{% endif %}">
+      <div>
+        <h3 class="font-semibold">Step 1 — Issue fee demands</h3>
+        <p class="text-sm text-gray-600">Marks all students as demanded; download demand letters from balances.</p>
+        {% if school.fees_demanded_at %}<p class="text-xs text-gray-500 mt-1">Issued {{ school.fees_demanded_at|date:"M d, Y H:i" }}</p>{% endif %}
+      </div>
+      {% if school.fees_demanded %}
+      <span class="text-green-700 font-medium text-sm">Done</span>
+      {% else %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="issue_demands">
+        <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded text-sm hover:bg-amber-700">Issue Demands</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="p-4 border rounded">
+      <h3 class="font-semibold">Step 2 — Collect payments</h3>
+      <p class="text-sm text-gray-600 mb-3">Record each payment in Ushs; print receipt per payment.</p>
+      <a href="{% url 'core:bursar_payments' %}" class="inline-block px-4 py-2 bg-emerald-600 text-white rounded text-sm">Record Payment</a>
+      <a href="{% url 'core:bursar_balances' %}" class="inline-block px-4 py-2 bg-gray-600 text-white rounded text-sm ml-2">Balances &amp; Demands</a>
+    </div>
+
+    <div class="flex items-center justify-between p-4 border rounded {% if school.term_open_for_academics %}bg-blue-50{% endif %}">
+      <div>
+        <h3 class="font-semibold">Step 3 — Open term for academics</h3>
+        <p class="text-sm text-gray-600">Allows teachers and secretary to enter marks.</p>
+        {% if school.term_opened_at %}<p class="text-xs text-gray-500 mt-1">Opened {{ school.term_opened_at|date:"M d, Y H:i" }}</p>{% endif %}
+      </div>
+      {% if school.term_open_for_academics %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="close_term">
+        <button type="submit" class="px-3 py-1.5 border border-gray-400 rounded text-sm">Close marks</button>
+      </form>
+      {% else %}
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="open_term">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Open Term</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

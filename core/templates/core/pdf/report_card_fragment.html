@@ -1,0 +1,156 @@
+<style>
+  :root {
+    --primary: {{ report.school.primary_color|default:'#0f766e' }};
+    --accent: {{ report.school.accent_color|default:'#fb7185' }};
+    --muted: #6b7280;
+    --bg: #f8fafc;
+    --card-bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body { font-family: Inter, Arial, Helvetica, sans-serif; color: #111827; padding: 20px; }
+    body { position: relative; }
+  body::before { content: "{{ report.school.school_name|default:'SCHOOL' }}"; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-40deg); font-size: 72px; color: rgba(15,118,110,0.08); white-space: nowrap; z-index: 0; pointer-events: none; }
+  .card { position: relative; z-index: 1; width: 100%; background: var(--card-bg); border-radius: 10px; padding: 14px; box-shadow: 0 4px 14px rgba(16,24,40,0.06); border: 1px solid rgba(16,24,40,0.06); }
+  .header-bar { display:flex; align-items:center; gap:12px; padding:10px; border-radius:8px; background: linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01)); }
+  .logo { width:72px; height:72px; object-fit:contain; }
+  .title { flex:1; text-align:center; }
+  .title h1 { margin:0; font-size:22px; color: #0f172a; letter-spacing:0.6px; }
+  .title p { margin:6px 0 0 0; font-size:11px; color:#334155; }
+  .meta { text-align:right; font-size:10px; color:#475569; }
+
+  .body-grid { display:flex; gap:14px; margin-top:12px; }
+  .left { width:62%; }
+  .right { width:38%; }
+
+  .student-card { display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f8fafc; border-radius:16px; border:1px solid rgba(15,118,110,0.1); }
+  .student-info { font-size:12px; }
+  .student-info .name { font-weight:800; font-size:18px; color:#0f172a; }
+  .student-photo { width:92px; height:92px; border-radius:18px; border:3px solid rgba(251,113,133,0.22); object-fit:cover; display:block; }
+
+  table.marks { width:100%; border-collapse:separate; border-spacing:0; margin-top:16px; font-size:11px; }
+  table.marks thead th { text-align:left; padding:12px 14px; background: linear-gradient(90deg, var(--primary), var(--accent)); color:#fff; border-top-left-radius:12px; border-top-right-radius:12px; }
+  table.marks td { border-bottom:1px solid #e2e8f0; padding:14px 14px; background:#ffffff; }
+  table.marks tr:nth-child(even) td { background: #f8fafc; }
+  table.marks tbody tr:last-child td { border-bottom:none; }
+
+  .stats { margin-top:18px; display:flex; gap:12px; }
+  .badge { flex:1; padding:16px; border-radius:16px; background:#ffffff; border:1px solid rgba(15,118,110,0.08); box-shadow:0 10px 30px rgba(15,23,42,0.04); text-align:center; }
+  .badge .value { font-weight:800; font-size:20px; color:var(--primary); margin-top:6px; display:block; }
+  .small { font-size:10px; color:var(--muted); }
+
+  .remarks { margin-top:18px; padding:18px; border-radius:18px; background:#ffffff; font-size:12px; color:#111827; box-shadow:0 10px 30px rgba(15,23,42,0.06); }
+  .remarks h3 { margin:0 0 10px 0; font-size:13px; color:var(--primary); letter-spacing:0.4px; }
+
+  .signatures { display:flex; justify-content:space-between; margin-top:22px; }
+  .sig { width:45%; text-align:left; font-size:12px; color:#334155; }
+  .sig-line { margin-top:30px; border-top:1px solid rgba(148,163,184,0.45); width:72%; }
+
+  .footer { margin-top:14px; text-align:center; color:var(--muted); font-size:9px; }
+
+  @media print {
+    .card { box-shadow:none; border: none; }
+  }
+</style>
+
+<div class="card">
+  {% with school=report.school school_logo_uri=report.school_logo_uri %}
+  <div class="header-bar">
+    <div style="width:72px;">
+      {% if report.school_logo_uri %}
+        <img src="{{ report.school_logo_uri }}" class="logo" alt="logo">
+      {% elif report.school.logo %}
+        <img src="{{ report.school.logo.url }}" class="logo" alt="logo">
+      {% else %}
+        <div style="width:72px;height:72px;border-radius:8px;background:linear-gradient(180deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">{{ report.school.school_initials_prefix }}</div>
+      {% endif %}
+    </div>
+    <div class="title">
+      <h1>{{ report.school.school_name }}</h1>
+      {% if report.school.motto %}<p>{{ report.school.motto }}</p>{% endif %}
+      <p><strong>{{ report.report_title }}</strong> — {{ report.term }} / {{ report.academic_year }}</p>
+    </div>
+    <div class="meta">
+      <div>{{ report.school.address }}</div>
+      <div>{% if report.school.phone %}Tel: {{ report.school.phone }}{% endif %} {% if report.school.email %}| {{ report.school.email }}{% endif %}</div>
+    </div>
+  </div>
+  {% endwith %}
+
+  <div class="body-grid">
+    <div class="left">
+      <div class="student-card">
+        <div class="student-info">
+          <div class="name">{{ report.student.first_name }} {{ report.student.last_name }}</div>
+          <div class="small">ID: {{ report.student.student_id }} &nbsp;|&nbsp; Class: {{ report.student.current_class }}</div>
+          {% if report.class_position %}
+            <div style="margin-top:6px;">
+              <span style="background:var(--primary);color:#fff;padding:6px 8px;border-radius:6px;font-size:11px;">Rank: {{ report.class_position }} / {{ report.class_size }}</span>
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          {% if report.student_photo_uri %}
+            <img src="{{ report.student_photo_uri }}" class="student-photo" alt="photo">
+          {% endif %}
+        </div>
+      </div>
+
+      <table class="marks">
+        <thead>
+          <tr><th style="width:40%">Subject</th><th style="width:40%">Details</th><th style="width:10%">Weighted</th><th style="width:10%">Grade</th></tr>
+        </thead>
+        <tbody>
+          {% for item in report.subjects %}
+            <tr>
+              <td>{{ item.subject.name }}</td>
+              <td style="font-size:11px;color:#374151;">{% for a in item.assessments %}{{ a.name }}: {{ a.score }}{% if not forloop.last %}; {% endif %}{% endfor %}</td>
+              <td>{{ item.weighted }}</td>
+              <td><strong style="color:{{ item.grade_color|default:'#0f172a' }}">{{ item.grade }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="stats">
+        <div class="badge"><div class="small">Final Average</div><div class="value">{{ report.overall_average }}%</div></div>
+        <div class="badge"><div class="small">Grade</div><div class="value">{{ report.overall_grade }}</div></div>
+        <div class="badge"><div class="small">Attendance</div><div class="value">{{ report.days_present }}/{{ report.total_school_days }}</div></div>
+      </div>
+
+      <div class="remarks">
+        <h3>Class Teacher's Remarks</h3>
+        <p>{{ report.class_teacher_remark }}</p>
+        {% if report.dos_remark %}
+          <h3>Director of Studies</h3>
+          <p>{{ report.dos_remark }}</p>
+        {% endif %}
+        <h3>Head Teacher</h3>
+        <p>{{ report.head_teacher_remark }}</p>
+      </div>
+
+      <div class="signatures">
+        <div class="sig">Class Teacher<br><div class="sig-line"></div></div>
+        <div class="sig">Head Teacher<br><div class="sig-line"></div></div>
+      </div>
+
+    </div>
+
+    <div class="right">
+      <div style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(2,6,23,0.04);">
+        <h3 style="margin:0 0 8px 0;color:var(--primary);">Student Summary</h3>
+        <p style="margin:0;font-size:12px;color:var(--muted)"><strong>Conduct:</strong> {{ report.conduct_rating }}</p>
+        {% if report.conduct_note %}<p style="margin:4px 0 0 0;font-size:11px;color:#374151">{{ report.conduct_note }}</p>{% endif %}
+        <hr style="margin:12px 0;border:none;border-top:1px solid #eef2ff">
+        <p style="margin:0;font-size:12px;color:var(--muted)"><strong>Generated:</strong> {{ now|date:"F j, Y" }}</p>
+        <p style="margin:6px 0 0 0;font-size:10px;color:var(--muted)">Generated: {{ report.generated_at|date:"F j, Y" }}</p>
+        <p style="margin:6px 0 0 0;font-size:10px;color:var(--muted)">Designed by Jordan Design Hub — +256 754 687597</p>
+      </div>
+      
+      <div class="footer">
+        {{ report.school.address }}{% if report.school.phone %} | Tel: {{ report.school.phone }}{% endif %} | {{ report.school.email }}
+      </div>
+    </div>
+  </div>
+
+</div>

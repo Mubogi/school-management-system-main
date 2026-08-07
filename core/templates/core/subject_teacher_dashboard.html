@@ -1,0 +1,16 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="bg-white p-6 rounded shadow">
+  <h1 class="text-2xl font-bold mb-4">Subject Teacher Dashboard</h1>
+  <div>
+    <h2 class="font-semibold">Your Assignments</h2>
+    <ul class="mt-2">
+      {% for a in assignments %}
+        <li>{{ a.subject.name }} — {{ a.assigned_class }}</li>
+      {% empty %}
+        <li>No assignments.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

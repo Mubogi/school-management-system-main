@@ -1,0 +1,279 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Student Profile{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-white rounded-lg shadow p-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <!-- Photo & Basic Info -->
+      <div class="xl:col-span-1 bg-gray-50 rounded-xl p-6 text-center">
+        {% if student.passport_photo %}
+          <img src="{{ student.passport_photo.url }}" alt="{{ student.first_name }} {{ student.last_name }}" class="mx-auto h-32 w-32 rounded-full object-cover mb-4">
+        {% else %}
+          <img src="https://ui-avatars.com/api/?name={{ student.first_name }}+{{ student.last_name }}&background=3b82f6&color=fff&size=128" alt="{{ student.first_name }} {{ student.last_name }}" class="mx-auto h-32 w-32 rounded-full mb-4">
+        {% endif %}
+        
+        <!-- Photo Upload Form -->
+        <div class="mt-3 mb-4">
+          <button type="button" onclick="document.getElementById('photo-modal').classList.remove('hidden')" class="text-sm text-blue-600 hover:text-blue-900">Change Photo</button>
+        </div>
+        
+        <h2 class="text-2xl font-semibold text-gray-900">{{ student.first_name }} {{ student.last_name }}</h2>
+        <p class="text-sm text-gray-500">{{ student.student_id }}</p>
+        <div class="mt-4 space-y-2 text-left text-sm text-gray-700">
+          <div><strong>Class:</strong> {{ student.current_class }}</div>
+          <div><strong>Gender:</strong> {{ student.get_gender_display }}</div>
+          <div><strong>Enrolled:</strong> {{ student.enrollment_date|date:"M d, Y" }}</div>
+          <div><strong>Age:</strong> {% if student.date_of_birth %}{{ student.date_of_birth|timesince }}{% else %}N/A{% endif %}</div>
+        </div>
+      </div>
+
+      <!-- Guardian & Fee Info -->
+      <div class="xl:col-span-2 grid gap-6">
+        <div class="bg-white rounded-xl shadow p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Guardian & Contact</h3>
+            {% if can_edit %}
+            <button type="button" onclick="document.getElementById('edit-modal').classList.remove('hidden')" class="text-sm text-blue-600 hover:text-blue-900 font-medium">Edit Info</button>
+            {% endif %}
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div>
+              <p class="text-gray-500">Guardian</p>
+              <p class="font-medium">{{ student.guardian_name|default:'Not provided' }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500">Phone</p>
+              <p class="font-medium">{{ student.guardian_phone|default:'Not provided' }}</p>
+            </div>
+            <div>
+              <p class="text-gray-500">Email</p>
+              <p class="font-medium">{{ student.guardian_email|default:'Not provided' }}</p>
+            </div>
+            <div class="md:col-span-2">
+              <p class="text-gray-500">Address</p>
+              <p class="font-medium">{{ student.address|default:'Not provided' }}</p>
+            </div>
+          </div>
+        </div>
+
+        {% if can_download_reports %}
+        <div class="bg-white rounded-xl shadow p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Reports &amp; Statements</h3>
+          <p class="text-sm text-gray-500 mb-4">Term {{ active_term }} / {{ active_year }}</p>
+          <div class="flex flex-wrap gap-2">
+            <a href="{% url 'core:student_report_pdf_typed' student.student_id 'midterm' %}" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              <i class="fas fa-file-pdf mr-1"></i>Mid-Term Report
+            </a>
+            <a href="{% url 'core:student_report_pdf_typed' student.student_id 'eot' %}" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+              <i class="fas fa-file-pdf mr-1"></i>End of Term Report
+            </a>
+            <a href="{% url 'core:student_financial_statement_pdf' student.student_id %}" target="_blank" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700">
+              <i class="fas fa-receipt mr-1"></i>Financial Statement
+            </a>
+            {% if balance and balance > 0 %}
+            <a href="{% url 'core:bursar_demand_letter_pdf' student.student_id %}" target="_blank" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">
+              <i class="fas fa-envelope mr-1"></i>Fee Demand Letter
+            </a>
+            {% elif balance is not None and balance <= 0 %}
+            <a href="{% url 'core:student_clearance_pdf' student.student_id %}" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+              <i class="fas fa-certificate mr-1"></i>Fee Clearance Certificate
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-xl shadow p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Fee Summary</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
+            <div class="rounded-lg border border-gray-200 p-4 bg-gray-50">
+              <p class="text-gray-500">Fee Structure</p>
+              <p class="font-medium">{% if fee_structure %}Ushs {{ fee_structure.compute_total }}{% else %}Not configured{% endif %}</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 p-4 bg-gray-50">
+              <p class="text-gray-500">Total Paid</p>
+              <p class="font-medium">Ushs {{ total_paid }}</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 p-4 bg-gray-50">
+              <p class="text-gray-500">Balance</p>
+              <p class="font-medium {% if balance and balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">{% if balance is not None %}Ushs {{ balance }}{% else %}N/A{% endif %}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Data -->
+  <div class="grid gap-6 xl:grid-cols-2">
+    <div class="bg-white rounded-lg shadow p-6 overflow-hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Recent Payments</h3>
+        <span class="text-sm text-gray-500">Last 10</span>
+      </div>
+      {% if payments %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Receipt</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for payment in payments %}
+            <tr>
+              <td class="px-4 py-3 text-blue-600"><a href="{% url 'core:receipt_view' payment.unique_receipt_id %}">{{ payment.unique_receipt_id }}</a></td>
+              <td class="px-4 py-3 text-gray-700">Ushs {{ payment.amount_paid }}</td>
+              <td class="px-4 py-3 text-gray-700">Ushs {{ payment.balance_remaining }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ payment.date_of_payment|date:"M d, Y" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-gray-500">No payment history recorded yet.</p>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6 overflow-hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Recent Marks</h3>
+        <span class="text-sm text-gray-500">Current Term</span>
+      </div>
+      {% if recent_marks %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Assessment</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for mark in recent_marks %}
+            <tr>
+              <td class="px-4 py-3 text-gray-700">{{ mark.subject.name }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ mark.assessment_type.name }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ mark.score_achieved }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ mark.grade }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-gray-500">No recent marks recorded for this student.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Photo Upload Modal -->
+<div id="photo-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Change Photo</h3>
+    
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="upload_photo">
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Photo</label>
+        <input type="file" name="passport_photo" accept="image/*" capture="environment" class="w-full border rounded px-3 py-2" required>
+        <p class="text-xs text-gray-500 mt-1">You can use 'capture' to take a photo directly from your camera</p>
+      </div>
+      
+      <div class="flex gap-3 pt-4">
+        <button type="button" onclick="document.getElementById('photo-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-medium">
+          Cancel
+        </button>
+        <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+          Upload
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="edit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl mx-4 my-8">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Student Profile</h3>
+    
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="edit_profile">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          {{ edit_form.first_name.label_tag }}
+          {{ edit_form.first_name }}
+          {% if edit_form.first_name.errors %}<span class="text-red-600 text-sm">{{ edit_form.first_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div>
+          {{ edit_form.last_name.label_tag }}
+          {{ edit_form.last_name }}
+          {% if edit_form.last_name.errors %}<span class="text-red-600 text-sm">{{ edit_form.last_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div>
+          {{ edit_form.date_of_birth.label_tag }}
+          {{ edit_form.date_of_birth }}
+          {% if edit_form.date_of_birth.errors %}<span class="text-red-600 text-sm">{{ edit_form.date_of_birth.errors.0 }}</span>{% endif %}
+        </div>
+        <div>
+          {{ edit_form.gender.label_tag }}
+          {{ edit_form.gender }}
+          {% if edit_form.gender.errors %}<span class="text-red-600 text-sm">{{ edit_form.gender.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="md:col-span-2">
+          {{ edit_form.guardian_name.label_tag }}
+          {{ edit_form.guardian_name }}
+          {% if edit_form.guardian_name.errors %}<span class="text-red-600 text-sm">{{ edit_form.guardian_name.errors.0 }}</span>{% endif %}
+        </div>
+        <div>
+          {{ edit_form.guardian_phone.label_tag }}
+          {{ edit_form.guardian_phone }}
+          {% if edit_form.guardian_phone.errors %}<span class="text-red-600 text-sm">{{ edit_form.guardian_phone.errors.0 }}</span>{% endif %}
+        </div>
+        <div>
+          {{ edit_form.guardian_email.label_tag }}
+          {{ edit_form.guardian_email }}
+          {% if edit_form.guardian_email.errors %}<span class="text-red-600 text-sm">{{ edit_form.guardian_email.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="md:col-span-2">
+          {{ edit_form.address.label_tag }}
+          {{ edit_form.address }}
+          {% if edit_form.address.errors %}<span class="text-red-600 text-sm">{{ edit_form.address.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+      
+      <div class="flex gap-3 pt-4">
+        <button type="button" onclick="document.getElementById('edit-modal').classList.add('hidden')" class="flex-1 px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-medium">
+          Cancel
+        </button>
+        <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Close modal when clicking outside
+document.getElementById('photo-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.add('hidden');
+});
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.add('hidden');
+});
+</script>
+{% endblock %}

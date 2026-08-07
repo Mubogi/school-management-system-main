@@ -1,0 +1,165 @@
+{% extends "core/layout/base_layout.html" %}
+
+{% block page_title %}Manage Assignments{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Class Teacher Assignments -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Class Teacher Assignments</h2>
+    
+    <!-- Add Class Teacher Assignment -->
+    <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Assign Class Teacher</h3>
+      <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="assign_class_teacher">
+        <div>
+          <label for="teacher_id" class="block text-sm font-medium text-gray-700 mb-2">Teacher</label>
+          <select name="teacher_id" id="teacher_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" required>
+            <option value="">-- Select Teacher --</option>
+            {% for teacher in teachers %}
+              {% if teacher.role == 'CLASS_TEACHER' %}
+              <option value="{{ teacher.id }}">{{ teacher.user.get_full_name|default:teacher.user.username }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="class_id" class="block text-sm font-medium text-gray-700 mb-2">Class</label>
+          <select name="class_id" id="class_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" required>
+            <option value="">-- Select Class --</option>
+            {% for class in classes %}
+            <option value="{{ class.id }}">{{ class.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+            Assign Class Teacher
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Class Teacher Assignments List -->
+    <div class="overflow-x-auto">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Current Assignments</h3>
+      {% if class_assignments %}
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teacher</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for assignment in class_assignments %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium text-gray-900">{{ assignment.teacher.user.get_full_name|default:assignment.teacher.user.username }}</td>
+            <td class="px-6 py-4 text-gray-700">{{ assignment.school_class.name }}</td>
+            <td class="px-6 py-4 text-sm">
+              <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_class_assignment">
+                <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Remove this assignment?')">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-gray-500 py-4">No class teacher assignments yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Subject Teacher Assignments -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">Subject Assignments</h2>
+    <p class="text-sm text-gray-600 mb-6">Assign subjects to class teachers or subject teachers. A class teacher can also teach specific subjects.</p>
+    
+    <!-- Add Subject Assignment -->
+    <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Assign Subject to Teacher</h3>
+      <form method="post" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="assign_subject_teacher">
+        <div>
+          <label for="subject_teacher_id" class="block text-sm font-medium text-gray-700 mb-2">Teacher</label>
+          <select name="teacher_id" id="subject_teacher_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" required>
+            <option value="">-- Select Teacher --</option>
+            {% for teacher in teachers %}
+              {% if teacher.role == 'CLASS_TEACHER' or teacher.role == 'SUBJECT_TEACHER' %}
+              <option value="{{ teacher.id }}">{{ teacher.user.get_full_name|default:teacher.user.username }} ({{ teacher.get_role_display }})</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="subject_id" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+          <select name="subject_id" id="subject_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" required>
+            <option value="">-- Select Subject --</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}">{{ subject.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="subject_class_id" class="block text-sm font-medium text-gray-700 mb-2">Class</label>
+          <select name="assigned_class" id="subject_class_id" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" required>
+            <option value="">-- Select Class --</option>
+            {% for class in classes %}
+            <option value="{{ class.name }}">{{ class.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+            Assign Subject
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Subject Teacher Assignments List -->
+    <div class="overflow-x-auto">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Current Assignments</h3>
+      {% if subject_assignments %}
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teacher</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for assignment in subject_assignments %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4 font-medium text-gray-900">{{ assignment.teacher.user.get_full_name|default:assignment.teacher.user.username }}</td>
+            <td class="px-6 py-4 text-gray-700">{{ assignment.subject.name }}</td>
+            <td class="px-6 py-4 text-gray-700">{{ assignment.assigned_class }}</td>
+            <td class="px-6 py-4 text-sm">
+              <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_subject_assignment">
+                <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Remove this assignment?')">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-gray-500 py-4">No subject teacher assignments yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
