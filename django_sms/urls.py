@@ -8,6 +8,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('legacy/', include('school.urls')),
     path('licensing/', include('licensing.urls')),
+    path('notifications/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:

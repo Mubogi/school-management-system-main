@@ -207,6 +207,20 @@
     </a>
   {% endif %}
   
+  <div class="nav-section-title">Communication</div>
+  <a href="{% url 'notifications:whatsapp_queue' %}" class="nav-link">
+    <i class="bi bi-whatsapp" style="color: #25D366;"></i>
+    <span class="ms-3">WhatsApp Queue</span>
+  </a>
+  <a href="{% url 'notifications:email_queue' %}" class="nav-link">
+    <i class="bi bi-envelope"></i>
+    <span class="ms-3">Email Queue</span>
+  </a>
+  <a href="{% url 'notifications:templates' %}" class="nav-link">
+    <i class="bi bi-file-text"></i>
+    <span class="ms-3">Templates</span>
+  </a>
+  
   <div class="nav-section-title">System</div>
   <a href="{% url 'core:qr_connect' %}" class="nav-link">
     <i class="bi bi-qr-code"></i>
