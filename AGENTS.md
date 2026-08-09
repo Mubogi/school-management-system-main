@@ -127,6 +127,20 @@
 - Entry point: main.py (PyWebView wrapper)
 - Binds to: 0.0.0.0:8000 for LAN access
 - PWA support: manifest.json, sw.js
+- Auto-migrate: main.py runs `migrate` on startup (ensure_database) so first run works without manual setup
+- Browser fallback: if pywebview cannot start a GUI window (headless/missing GTK/QT), the app falls back to opening the system browser while the Django server keeps running
+
+## PyInstaller Build (onedir)
+- Spec file: `school_system.spec`
+- Runtime hook: `school_system_rt_hook.py` (sets DJANGO_SETTINGS_MODULE + sys.path for frozen Django)
+- Build command: `python build.py` or `python -m PyInstaller --noconfirm school_system.spec`
+- Output: `dist/JDHubSchoolSystem/` (onedir, ~310MB)
+- Frozen data layout (see `DATA_DIR` in settings.py):
+  - `sys._MEIPASS` / `_internal/` — read-only bundled code/templates/static (PyInstaller)
+  - `DATA_DIR` = directory next to the executable — writable user data: `db.sqlite3`, `media/`, `backups/`
+  - Non-frozen (dev): DATA_DIR == BASE_DIR (project root), behavior unchanged
+- Hidden imports collected via `collect_submodules` for django, all project apps, whitenoise, reportlab, qrcode, PIL, pywebview
+- User data (db.sqlite3, media, backups) is excluded from the bundle and created at runtime
 
 ## Database Migrations
 ```bash
