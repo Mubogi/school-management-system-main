@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 {% load static %}
 <head>
   <meta charset="UTF-8">
@@ -10,10 +10,20 @@
   <link href="{% static 'core/css/tailwind.min.css' %}" rel="stylesheet">
   <link href="{% static 'core/css/icons.css' %}" rel="stylesheet">
   <link href="{% static 'core/css/offline.css' %}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Apex Theme (light/dark) -->
+  <link href="{% static 'core/css/apex-theme.css' %}" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="manifest" href="{% url 'core:pwa_manifest' %}">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#6366f1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Jordan Hub">
+  <!-- No-flash theme init: apply stored theme before paint -->
+  <script>
+    (function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();
+  </script>
   <style>
     body { font-family: 'Inter', ui-sans-serif, system-ui; }
     .app-shell { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -104,6 +114,9 @@
   <script src="{% static 'core/js/offline-sync.js' %}" defer></script>
 </head>
 <body class="bg-gray-50">
+  <!-- Ambient glow -->
+  <div class="apex-glow apex-glow-top"></div>
+  <div class="apex-glow apex-glow-bottom"></div>
   <div id="sidebarOverlay" class="sidebar-overlay" aria-hidden="true"></div>
 
   <div class="app-shell">
@@ -155,11 +168,15 @@
             <h1 class="topbar-title text-xl font-semibold text-gray-900">{% block page_title %}Dashboard{% endblock %}</h1>
           </div>
           <div class="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
+            <!-- Apex Theme Toggle -->
+            <button type="button" class="apex-theme-toggle" data-apex-toggle title="Toggle light / dark theme" aria-label="Toggle theme">
+              <i class="bi bi-brightness-high" id="themeIcon"></i>
+            </button>
             <div class="text-right hidden md:block">
               <div class="text-sm font-medium text-gray-900">{{ user.first_name|default:user.username }}</div>
               <div class="text-xs text-gray-500">{{ current_date }}</div>
             </div>
-            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=3b82f6&color=fff" alt="" class="h-9 w-9 md:h-10 md:w-10 rounded-full">
+            <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=6366f1&color=fff" alt="" class="h-9 w-9 md:h-10 md:w-10 rounded-full">
           </div>
         </div>
       </header>
@@ -249,5 +266,7 @@
       });
     })();
   </script>
+  <!-- Apex Theme Script (toggle + persistence) -->
+  <script src="{% static 'core/js/apex-theme.js' %}"></script>
 </body>
 </html>

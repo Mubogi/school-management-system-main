@@ -1,11 +1,16 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connect via QR Code - {{ school_name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{% static 'core/css/apex-theme.css' %}" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -255,9 +260,65 @@
                 flex-direction: column;
             }
         }
+
+        /* ---------- Apex dark-mode overrides ---------- */
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0b1220 0%, #111827 100%);
+        }
+        [data-theme="dark"] .container {
+            background: #0e1526;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        }
+        [data-theme="dark"] .title { color: #f1f5f9; }
+        [data-theme="dark"] .subtitle { color: #94a3b8; }
+        [data-theme="dark"] .qr-container {
+            background: linear-gradient(135deg, #060913 0%, #0e1526 100%);
+            border-color: #1e293b;
+        }
+        [data-theme="dark"] .scan-instructions { color: #94a3b8; }
+        [data-theme="dark"] .url-box {
+            background: #060913;
+            border-color: #1e293b;
+        }
+        [data-theme="dark"] .url-label { color: #94a3b8; }
+        [data-theme="dark"] .url-text { color: #e2e8f0; }
+        [data-theme="dark"] .btn-secondary {
+            background: #0e1526;
+            color: #818cf8;
+            border-color: #818cf8;
+        }
+        [data-theme="dark"] .btn-secondary:hover { background: #1e293b; }
+        [data-theme="dark"] .features { border-top-color: #1e293b; }
+        [data-theme="dark"] .features-title { color: #94a3b8; }
+        [data-theme="dark"] .feature-icon {
+            background: linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(124,58,237,0.18) 100%);
+        }
+        [data-theme="dark"] .feature-text { color: #94a3b8; }
+        [data-theme="dark"] .network-info {
+            background: #1e293b;
+            color: #93c5fd;
+        }
+        [data-theme="dark"] .lan-info {
+            background: #052e16;
+            color: #86efac;
+        }
+        [data-theme="dark"] .lan-url {
+            background: #14532d;
+            color: #bbf7d0;
+        }
+        [data-theme="dark"] .kiosk-btn {
+            background: #1e293b;
+            border-color: #f59e0b;
+            color: #fcd34d;
+        }
+        [data-theme="dark"] .kiosk-btn:hover { background: #334155; }
     </style>
 </head>
 <body>
+    <!-- Floating Apex theme toggle -->
+    <button type="button" class="apex-theme-toggle" data-apex-toggle title="Toggle light / dark theme" aria-label="Toggle theme" style="position:fixed;top:18px;right:18px;z-index:1000;">
+      <i class="bi bi-brightness-high" id="themeIcon"></i>
+    </button>
     <div class="container">
         <div class="logo-container">
             {% if school.logo %}
@@ -344,5 +405,6 @@
             Make sure your phone is connected to the same WiFi network as this computer for best results.
         </div>
     </div>
+    <script src="{% static 'core/js/apex-theme.js' %}"></script>
 </body>
 </html>

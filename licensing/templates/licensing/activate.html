@@ -1,12 +1,17 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>License Activation - School Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script>
+      (function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t='dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="{% static "core/css/apex-theme.css" %}" rel="stylesheet">
     <style>
         :root {
             --primary: #6366f1;
@@ -156,9 +161,50 @@
         .btn-deactivate:hover {
             background: #fecaca;
         }
+
+        /* ---------- Apex dark-mode overrides ---------- */
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0b1220 0%, #111827 100%);
+        }
+        [data-theme="dark"] .activation-card {
+            background: #0e1526;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            color: #e2e8f0;
+        }
+        [data-theme="dark"] .status-active { background: #052e16; color: #4ade80; }
+        [data-theme="dark"] .status-inactive { background: #450a0a; color: #fca5a5; }
+        [data-theme="dark"] .status-expired { background: #422006; color: #fcd34d; }
+        [data-theme="dark"] .hwid-box {
+            background: #060913;
+            border-color: #1e293b;
+        }
+        [data-theme="dark"] .hwid-code { color: #e2e8f0; }
+        [data-theme="dark"] .feature-item {
+            background: #060913;
+            color: #cbd5e1;
+        }
+        [data-theme="dark"] .tier-basic { background: #1e1b4b; color: #a5b4fc; }
+        [data-theme="dark"] .tier-standard { background: #052e16; color: #86efac; }
+        [data-theme="dark"] .tier-premium { background: #422006; color: #fcd34d; }
+        [data-theme="dark"] .tier-demo { background: #2e1065; color: #d8b4fe; }
+        [data-theme="dark"] .btn-deactivate {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+        [data-theme="dark"] .btn-deactivate:hover { background: #7f1d1d; }
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] input[type="text"] {
+            background: #060913;
+            border-color: #1e293b;
+            color: #e2e8f0;
+        }
     </style>
 </head>
 <body>
+    <!-- Floating Apex theme toggle -->
+    <button type="button" class="apex-theme-toggle" data-apex-toggle title="Toggle light / dark theme" aria-label="Toggle theme" style="position:fixed;top:18px;right:18px;z-index:1000;">
+      <i class="bi bi-brightness-high" id="themeIcon"></i>
+    </button>
     <div class="activation-card">
         <!-- Logo Section -->
         <div class="logo-section">
@@ -295,5 +341,6 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'core/js/apex-theme.js' %}"></script>
 </body>
 </html>
