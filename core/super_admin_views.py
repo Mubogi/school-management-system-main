@@ -426,8 +426,16 @@ def pwa_manifest(request):
 
 
 def pwa_service_worker(request):
-    from django.contrib.staticfiles.storage import staticfiles_storage
-    sw_path = staticfiles_storage.path('core/sw.js')
+    import os
+    from django.conf import settings
+    # Prefer the collected static file; fall back to the source app/static dir
+    sw_candidates = [
+        os.path.join(settings.BASE_DIR, 'staticfiles', 'core', 'sw.js'),
+        os.path.join(settings.BASE_DIR, 'core', 'static', 'core', 'sw.js'),
+    ]
+    sw_path = next((p for p in sw_candidates if os.path.exists(p)), None)
+    if not sw_path:
+        return HttpResponse('', content_type='application/javascript', status=404)
     with open(sw_path, encoding='utf-8') as f:
         content = f.read()
     return HttpResponse(content, content_type='application/javascript')

@@ -1,167 +1,180 @@
 #!/usr/bin/env python3
 """
 Automated Screenshot Generation Script
-Generates screenshots for all major features using Playwright
-and saves to /screenshots folder.
+Generates real PNG screenshots for all major pages using Playwright.
+Run with the Django server on port 12000:
+    python manage.py runserver 0.0.0.0:12000 --settings=django_sms.settings
+    python utils/generate_screenshots.py
 """
 import os
 import sys
 import time
 from pathlib import Path
 
-# Configuration
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://localhost:12000"
 SCREENSHOTS_DIR = Path(__file__).parent.parent / "screenshots"
-USERNAME = "Jordan"
+USERNAME = "jordan"
 PASSWORD = "20020120"
 
 
 def setup_playwright():
     """Setup Playwright for screenshots."""
     from playwright.sync_api import sync_playwright
-    
+
     playwright = sync_playwright().start()
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context(viewport={"width": 1920, "height": 1080})
     page = context.new_page()
-    
     return playwright, browser, context, page
 
 
 def login(page):
-    """Login to the system."""
+    """Login to the system as the Jordan admin."""
     page.goto(f"{BASE_URL}/accounts/login/")
     time.sleep(2)
-    
-    # Fill login form
     page.fill("input[name='username']", USERNAME)
     page.fill("input[name='password']", PASSWORD)
-    
-    # Submit
     page.click("button[type='submit']")
     time.sleep(3)
 
 
-def take_screenshot(page, filename):
-    """Take a screenshot and save to file."""
-    time.sleep(1)  # Allow page to stabilize
+def shot(page, label, filename, section=None):
+    """Take a single screenshot with label tracking."""
+    tag = f"[{section}] {label}" if section else label
+    print(f"  {tag}")
+    time.sleep(1)
     filepath = SCREENSHOTS_DIR / filename
     page.screenshot(path=str(filepath), full_page=False)
-    print(f"  ✓ Saved: {filename}")
+    size_kb = filepath.stat().st_size / 1024
+    print(f"    ✓ {filename} ({size_kb:.0f} KB)")
+
+
+def goto(page, path, wait=2):
+    """Navigate and wait."""
+    page.goto(f"{BASE_URL}{path}")
+    time.sleep(wait)
 
 
 def generate_screenshots():
     """Generate all required screenshots."""
     print("\n🖼️  JD Hub School Management System - Screenshot Generator")
     print("=" * 60)
-    
-    # Ensure screenshots directory exists
     SCREENSHOTS_DIR.mkdir(exist_ok=True)
-    
+
     playwright = None
-    
     try:
         print("\n📸 Starting screenshot generation...")
         playwright, browser, context, page = setup_playwright()
-        
-        # 1. Landing Page
-        print("\n  [1/10] Landing Page")
-        page.goto(BASE_URL)
-        time.sleep(2)
-        take_screenshot(page, "01_landing_page.png")
-        
-        # 2. First Run Setup (if no admin)
-        print("\n  [2/10] First Run Setup")
-        page.goto(f"{BASE_URL}/setup/")
-        time.sleep(2)
-        take_screenshot(page, "02_first_run_setup.png")
-        
-        # 3. Login
-        print("\n  [3/10] Login Page")
-        page.goto(f"{BASE_URL}/accounts/login/")
-        time.sleep(2)
-        take_screenshot(page, "03_login.png")
-        
-        # 4. Login and access dashboard
-        print("\n  [4/10] Master Vendor Dashboard")
+        page.set_default_timeout(15000)
+
+        # ---- PUBLIC PAGES ----
+        print("\n=== PUBLIC PAGES ===")
+        goto(page, "/")
+        shot(page, "Landing Page", "01_landing_page.png", "PUBLIC")
+        goto(page, "/setup/")
+        shot(page, "First Run Setup", "02_first_run_setup.png", "PUBLIC")
+        goto(page, "/accounts/login/")
+        shot(page, "Login Page", "03_login.png", "PUBLIC")
+        goto(page, "/parent-kiosk/")
+        shot(page, "Parent Kiosk", "04_parent_kiosk.png", "PUBLIC")
+        goto(page, "/qr-connect/")
+        shot(page, "QR Connect", "05_qr_connect.png", "PUBLIC")
+
+        # ---- MASTER VENDOR ----
+        print("\n=== MASTER VENDOR PANEL ===")
         login(page)
-        page.goto(f"{BASE_URL}/master-vendor/")
-        time.sleep(3)
-        take_screenshot(page, "04_master_vendor_dashboard.png")
-        
-        # 5. License Status
-        print("\n  [5/10] License Status")
-        page.goto(f"{BASE_URL}/system/license-status/")
-        time.sleep(2)
-        take_screenshot(page, "05_license_status.png")
-        
-        # 6. School Admin Dashboard
-        print("\n  [6/10] School Admin Dashboard")
-        page.goto(f"{BASE_URL}/super-admin/")
-        time.sleep(2)
-        take_screenshot(page, "06_school_admin_dashboard.png")
-        
-        # 7. WhatsApp Queue
-        print("\n  [7/10] WhatsApp Queue")
-        page.goto(f"{BASE_URL}/notifications/whatsapp-queue/")
-        time.sleep(2)
-        take_screenshot(page, "07_whatsapp_queue.png")
-        
-        # 8. Student Management
-        print("\n  [8/10] Student Management")
-        page.goto(f"{BASE_URL}/secretary/students/")
-        time.sleep(2)
-        take_screenshot(page, "08_student_management.png")
-        
-        # 9. QR Connect
-        print("\n  [9/10] QR Connect")
-        page.goto(f"{BASE_URL}/qr-connect/")
-        time.sleep(2)
-        take_screenshot(page, "09_qr_connect.png")
-        
-        # 10. Parent Kiosk
-        print("\n  [10/10] Parent Kiosk")
-        page.goto(f"{BASE_URL}/parent-kiosk/")
-        time.sleep(2)
-        take_screenshot(page, "10_parent_kiosk.png")
-        
+        goto(page, "/master-vendor/", wait=3)
+        shot(page, "Master Vendor Dashboard", "06_master_vendor_dashboard.png", "VENDOR")
+        goto(page, "/master-vendor/schools/")
+        shot(page, "School Management", "07_vendor_schools.png", "VENDOR")
+        goto(page, "/master-vendor/users/")
+        shot(page, "User Management", "08_vendor_users.png", "VENDOR")
+        goto(page, "/master-vendor/feature-matrix/")
+        shot(page, "Feature Matrix", "09_feature_matrix.png", "VENDOR")
+        goto(page, "/master-vendor/backups/")
+        shot(page, "Backup Management", "10_vendor_backups.png", "VENDOR")
+        goto(page, "/master-vendor/audit/")
+        shot(page, "Audit Log", "11_audit_log.png", "VENDOR")
+        goto(page, "/master-vendor/statistics/")
+        shot(page, "Platform Statistics", "12_vendor_statistics.png", "VENDOR")
+
+        # ---- LICENSING ----
+        print("\n=== LICENSING ===")
+        goto(page, "/system/license-status/")
+        shot(page, "License Status", "13_license_status.png", "LICENSE")
+        goto(page, "/licensing/manage/")
+        shot(page, "License Management", "14_license_management.png", "LICENSE")
+
+        # ---- ACADEMIC DASHBOARDS ----
+        print("\n=== ACADEMIC ===")
+        goto(page, "/super-admin/")
+        shot(page, "School Admin Dashboard", "15_school_admin_dashboard.png", "ACADEMIC")
+        goto(page, "/head-teacher/")
+        shot(page, "Head Teacher Dashboard", "16_head_teacher_dashboard.png", "ACADEMIC")
+        goto(page, "/dos/")
+        shot(page, "DOS Academic Management", "17_dos_dashboard.png", "ACADEMIC")
+        goto(page, "/dos/batch-id-cards/")
+        shot(page, "Batch ID Cards", "18_batch_id_cards.png", "ACADEMIC")
+        goto(page, "/dos/termly-return/")
+        shot(page, "Termly Return Checker", "19_termly_return.png", "ACADEMIC")
+        goto(page, "/marks/bulk/")
+        shot(page, "Bulk Marks Entry", "20_marks_bulk_entry.png", "ACADEMIC")
+
+        # ---- FINANCE ----
+        print("\n=== FINANCE ===")
+        goto(page, "/bursar/")
+        shot(page, "Bursar Dashboard", "21_bursar_dashboard.png", "FINANCE")
+        goto(page, "/bursar/fees/")
+        shot(page, "Fee Structures", "22_fee_structures.png", "FINANCE")
+        goto(page, "/bursar/payments/")
+        shot(page, "Payment Recording", "23_payment_recording.png", "FINANCE")
+        goto(page, "/bursar/receipts/")
+        shot(page, "Receipts", "24_receipts.png", "FINANCE")
+
+        # ---- STUDENT MANAGEMENT ----
+        print("\n=== STUDENT MANAGEMENT ===")
+        goto(page, "/secretary/students/")
+        shot(page, "Student List", "25_student_list.png", "STUDENT")
+        goto(page, "/secretary/enroll/")
+        shot(page, "Student Enrollment", "26_student_enroll.png", "STUDENT")
+
+        # ---- COMMUNICATION ----
+        print("\n=== COMMUNICATION ===")
+        goto(page, "/notifications/whatsapp-queue/")
+        shot(page, "WhatsApp Queue", "27_whatsapp_queue.png", "COMM")
+        goto(page, "/notifications/email-queue/")
+        shot(page, "Email Queue", "28_email_queue.png", "COMM")
+        goto(page, "/notifications/templates/")
+        shot(page, "Message Templates", "29_message_templates.png", "COMM")
+
         print("\n" + "=" * 60)
         print("✅ All screenshots generated successfully!")
         print(f"📁 Location: {SCREENSHOTS_DIR}")
-        
-        # List all screenshots
-        print("\n📋 Generated Files:")
-        for i, f in enumerate(sorted(SCREENSHOTS_DIR.glob("*.png")), 1):
+        files = sorted(SCREENSHOTS_DIR.glob("*.png"))
+        print(f"📋 {len(files)} files generated:")
+        for i, f in enumerate(files, 1):
             size = f.stat().st_size / 1024
             print(f"   {i:02d}. {f.name} ({size:.1f} KB)")
-        
+
     except ImportError as e:
         print(f"\n⚠️  Playwright not installed: {e}")
-        print("\n🔧 Install with:")
-        print("   pip install playwright")
-        print("   playwright install chromium")
-        print("\n📝 Alternative: Use Selenium")
-        print("   pip install selenium webdriver-manager")
-        
+        print("   pip install playwright && python -m playwright install chromium")
+
     except Exception as e:
         print(f"\n❌ Error generating screenshots: {e}")
         import traceback
         traceback.print_exc()
-        
+
     finally:
         if playwright:
             playwright.stop()
-    
+
     return True
 
 
 if __name__ == "__main__":
     print("\n🔧 Prerequisites:")
-    print("  1. Start Django server: python manage.py runserver 0.0.0.0:8000")
+    print("  1. Start Django server: python manage.py runserver 0.0.0.0:12000")
     print("  2. Install Playwright: pip install playwright")
-    print("  3. Install browsers: playwright install chromium\n")
-    
-    if len(sys.argv) > 1 and sys.argv[1] == "--wait":
-        input("\nPress Enter when server is ready...")
-    
+    print("  3. Install browsers: python -m playwright install chromium\n")
     generate_screenshots()
