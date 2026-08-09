@@ -173,3 +173,55 @@ python main.py  # Desktop app with PyWebView
 `runserver --noreload` serves cached compiled templates. After editing a template, restart
 the server (kill the PID, relaunch) for changes to take effect. Browser may also cache the
 HTML; use `?v=N` query param to bust.
+
+## Apex PDF Theme
+All PDF outputs use the Apex design system. Renderer priority in `render_pdf_response()`
+(core/views.py): Playwright/Chromium → **WeasyPrint** → xhtml2pdf → ReportLab text fallback.
+In this environment only WeasyPrint is installed and working (supports gradients, CSS grid,
+inline SVG, `@page` margin boxes, system fonts via fontconfig).
+
+### Fonts
+Plus Jakarta Sans + JetBrains Mono are installed at `/usr/share/fonts/truetype/apex/`
+(system-wide, registered with fontconfig). WeasyPrint resolves them by family name. If
+absent, templates fall back to DejaVu Sans / DejaVu Sans Mono.
+
+### Shared PDF assets (core/templates/core/pdf/)
+- `apex_pdf_base.html` — `{% include %}` once per template; provides CSS variables
+  (`--apex-primary` #4f46e5, `--apex-violet` #7c3aed, `--apex-pink` #db2777, etc.), `@page`
+  footer, and reusable classes: `.apex-table` (dark header + zebra rows), `.apex-grade-pill`
+  (D1–F9 color-coded), `.apex-summary-box` (dashed 3-col grid), `.apex-id-tag`,
+  `.apex-watermark` / `.apex-watermark-glyph`, `.apex-logo-badge`.
+- `apex_svg.html` — inline Lucide-compatible SVG glyphs: `{% include 'core/pdf/apex_svg.html' with icon='shield' %}`.
+  Supported: shield, user, file-text, download, printer, key, contact, building, phone, graduation, check.
+- `letterhead.html` — Apex gradient crest bar (3-color), gradient badge fallback when no logo,
+  uppercase motto, double-rule divider. Included by receipt + most financial PDFs.
+
+### Report cards (report_card_fragment.html)
+Apex paper-sheet: school header (logo badge + name + motto + contact + OFFICIAL REPORT tag),
+student profile strip (photo + name + ID pill + class + rank pill), marks table (dark header,
+per-assessment details, mono weighted score, grade pill), summary stats box (avg/grade/attendance),
+remarks (class teacher / DOS / head teacher), footer (digital verification key + signature).
+Watermark: shield glyph + rotated uppercase school name at 4% opacity behind content.
+
+### Student ID cards (student_id_cards.html)
+- CR80 landscape cards on A4 portrait, 2 columns × 4 rows = 8 cards per sheet.
+- Front: gradient security pattern, school header, photo frame, student name + role,
+  meta grid (ID / class / DOB / expiry), gradient footer strip.
+- Back: magnetic stripe, property-of terms, emergency contact, signature, barcode (student ID).
+- Cut guides: dashed borders between card slots; back rows are column-mirrored so duplex
+  printing aligns front↔back after cutting. `?faces=front|back|both` controls which sides render.
+- View: `student_id_cards_pdf` in `core/super_admin_views.py` (SUPER_ADMIN only) passes
+  `image_file_uri()` for photos/logos so WeasyPrint can embed local files.
+
+### Other PDFs (palette + font swap)
+financial_statement, fee_clearance_certificate, bursar_demand_letter, bursar_fee_report,
+fee_clearance_list, fee_outstanding_list, assessment_report, class_broadsheet, report_card,
+student_report, subject_performance, class_all_report_cards — all swapped from Segoe UI →
+Plus Jakarta Sans and old blue palette (#1e40af/#3b82f6/#8b5cf6/#6366f1/#ec4899) → Apex
+(#4f46e5/#7c3aed/#db2777). They include `letterhead.html` which carries the full Apex branding.
+
+### ReportLab native generators (fallback path)
+`generate_reportcard_reportlab_bytes()` and `generate_reportcard_modern_bytes()` in core/views.py
+build PDFs natively with ReportLab Platypus (not HTML). These are only used when the HTML→PDF
+renderers all fail. They retain their own hardcoded colors (teal/coral) — acceptable as a
+last-resort fallback since the primary path is WeasyPrint + Apex HTML templates.
