@@ -80,6 +80,21 @@ def create_auto_backup():
         logger.error(f"Auto-backup failed: {e}")
 
 
+def ensure_database():
+    """Ensure the DB schema exists; runs migrations on first run."""
+    from django.conf import settings
+    from django.core.management import call_command
+    db_path = settings.DATABASES["default"].get("NAME", "")
+    if not db_path:
+        return
+    try:
+        logger.info("Checking database schema...")
+        call_command("migrate", interactive=False, verbosity=0)
+        logger.info("Database schema ready")
+    except Exception as e:
+        logger.warning(f"Database migrate skipped: {e}")
+
+
 def start_django_server(host='127.0.0.1', port=8000):
     """
     Start Django development server in a background thread.
@@ -91,6 +106,9 @@ def start_django_server(host='127.0.0.1', port=8000):
     
     # Setup Django
     django.setup()
+    
+    # Ensure DB schema exists (first-run / frozen bundle)
+    ensure_database()
     
     logger.info(f"Starting Django server on {host}:{port}")
     
@@ -204,25 +222,24 @@ def main():
         os.environ['DEBUG'] = 'True' if args.debug else 'False'
         start_django_server(args.host, args.port)
     else:
-        # Try to use pywebview
+        # Try to use pywebview for a native desktop window.
+        # The Django server is started in a background thread first so that
+        # both the webview and the browser-fallback can reach it.
+        server_thread = threading.Thread(
+            target=start_django_server,
+            args=(args.host, args.port),
+            daemon=True
+        )
+        server_thread.start()
+
+        import time
+        time.sleep(2)
+
+        webview_ok = False
         try:
             import webview
-            
+
             logger.info("Initializing desktop window...")
-            
-            # Start Django server in background thread
-            server_thread = threading.Thread(
-                target=start_django_server,
-                args=(args.host, args.port),
-                daemon=True
-            )
-            server_thread.start()
-            
-            # Wait for server to start
-            import time
-            time.sleep(2)
-            
-            # Create pywebview window with JD Hub branding
             window = webview.create_window(
                 title=f'{APP_NAME} - Powered by JD Hub',
                 url=url,
@@ -232,27 +249,34 @@ def main():
                 resizable=True,
                 js_api=None,
             )
-            
-            # Start webview
             webview.start()
-            
+            webview_ok = True
         except ImportError:
             logger.warning(
                 "pywebview not installed. "
-                "Install it with: pip install pywebview\n"
+                "Install it with: pip install pywebview. "
                 "Falling back to browser mode..."
             )
-            
-            # Fallback to browser mode
+        except Exception as e:
+            logger.warning(
+                f"pywebview could not start ({e}). "
+                "Falling back to browser mode..."
+            )
+
+        if not webview_ok:
+            # Open the system browser so the user can reach the app, then
+            # keep the main thread alive for the daemon server thread.
             browser_thread = threading.Thread(
                 target=open_browser,
-                args=(url, 2),
+                args=(url, 1),
                 daemon=True
             )
             browser_thread.start()
-            
-            start_django_server(args.host, args.port)
-
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                logger.info("Shutting down...")
 
 if __name__ == '__main__':
     main()

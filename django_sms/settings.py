@@ -1,12 +1,33 @@
+import os
+import sys
 from pathlib import Path
 
+# BASE_DIR points to the project source tree (used for templates/static).
+# In a frozen (PyInstaller) bundle this resolves to the read-only bundle dir.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# DATA_DIR is where writable, user-specific data lives (database, media,
+# backups). In a frozen app this is the directory next to the executable so
+# data persists across runs; in development it is the project root.
+if getattr(sys, 'frozen', False):
+    DATA_DIR = Path(sys.executable).resolve().parent
+else:
+    DATA_DIR = BASE_DIR
 
 SECRET_KEY = 'django-insecure-please-change-me'
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://work-1-muruuxfrxlthhzis.prod-runtime.all-hands.dev',
+    'https://work-2-muruuxfrxlthhzis.prod-runtime.all-hands.dev',
+    'http://localhost:12000',
+    'http://localhost:12001',
+]
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -61,7 +82,7 @@ WSGI_APPLICATION = 'django_sms.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DATA_DIR / 'db.sqlite3',
     }
 }
 
@@ -97,7 +118,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 WHITENOISE_USE_FINDERS = True
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = DATA_DIR / 'media'
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'

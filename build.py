@@ -197,61 +197,52 @@ coll = COLLECT(
 
 
 def build(production=False):
-    """Run PyInstaller build."""
-    
-    print(f"\n{'='*60}")
+    """Run PyInstaller build using the project spec file (onedir)."""
+    sep = "=" * 60
+
+    print(f"\n{sep}")
     print(f"Building {APP_NAME} (Production: {production})")
-    print(f"{'='*60}\n")
-    
-    # Generate spec file
-    spec_file = BASE_DIR / f"{APP_NAME}.spec"
-    spec_content = build_spec_file(production)
-    
-    with open(spec_file, 'w') as f:
-        f.write(spec_content)
-    
-    print(f"Generated spec file: {spec_file}")
-    
-    # Build command
+    print(f"{sep}\n")
+
+    spec_file = BASE_DIR / "school_system.spec"
+    if not spec_file.exists():
+        print(f"ERROR: spec file not found: {spec_file}")
+        return 1
+
+    print(f"Using spec file: {spec_file}")
+
     cmd = [
         sys.executable, '-m', 'PyInstaller',
-        '--name', APP_NAME,
-        '--onedir',  # One directory output
-        '--clean',
         '--noconfirm',
-        str(MAIN_SCRIPT),
+        str(spec_file),
     ]
-    
-    if production:
-        cmd.append('--noconsole')
-    
-    if Path(ICON_FILE).exists():
-        cmd.extend(['--icon', ICON_FILE])
-    
+
     print(f"\nRunning: {' '.join(cmd)}\n")
-    
+
     try:
         result = subprocess.run(cmd, cwd=str(BASE_DIR))
-        
+
         if result.returncode == 0:
-            print(f"\n{'='*60}")
+            print(f"\n{sep}")
             print("BUILD SUCCESSFUL!")
-            print(f"{'='*60}")
-            print(f"\nOutput directory: {DIST_DIR / APP_NAME}")
-            print(f"\nTo run the application:")
-            print(f"  {DIST_DIR / APP_NAME / APP_NAME}.exe")
+            print(f"{sep}")
+            out_dir = DIST_DIR / 'JDHubSchoolSystem'
+            print(f"\nOutput directory: {out_dir}")
+            print("\nTo run the application:")
+            print(f"  Linux/Mac: ./{out_dir / 'JDHubSchoolSystem'}")
+            print(f"  Windows:   {out_dir / 'JDHubSchoolSystem.exe'}")
         else:
-            print(f"\n{'='*60}")
+            print(f"\n{sep}")
             print("BUILD FAILED!")
-            print(f"{'='*60}")
+            print(f"{sep}")
             return 1
-            
+
     except FileNotFoundError:
         print("\nERROR: PyInstaller not found!")
         print("\nInstall PyInstaller with:")
         print("  pip install pyinstaller")
         return 1
-    
+
     return 0
 
 
