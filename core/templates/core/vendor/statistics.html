@@ -1,0 +1,81 @@
+{% extends 'core/base.html' %}
+
+{% block title %}System Statistics{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-bar-chart-line me-2" style="color: #4f46e5;"></i>System Statistics
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">Platform-wide analytics</p>
+  </div>
+  <a href="{% url 'core:master_vendor_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back</a>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 text-center">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-primary">{{ user_stats.total }}</div>
+        <div class="text-muted small">Total Users</div>
+        <div class="small mt-2 text-success">{{ user_stats.active }} active</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 text-center">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-success">{{ license_stats.active }}</div>
+        <div class="text-muted small">Active Licenses</div>
+        <div class="small mt-2 text-muted">{{ license_stats.total_activations }} total activations</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100 text-center">
+      <div class="card-body">
+        <div class="fs-1 fw-bold text-info">{{ backup_stats.total }}</div>
+        <div class="text-muted small">Backups</div>
+        <div class="small mt-2 text-muted">{{ backup_stats.total_size_gb|floatformat:2 }} GB</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-people me-2 text-primary"></i>Users by Role</h5></div>
+      <div class="card-body">
+        {% for role, count in user_stats.by_role.items %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold">{{ role }}</span>
+            <div class="d-flex align-items-center gap-2" style="min-width:200px;">
+              <div class="progress flex-grow-1" style="height:8px;"><div class="progress-bar bg-primary" style="width:{{ count|floatformat:0 }}00%"></div></div>
+              <span class="badge bg-primary">{{ count }}</span>
+            </div>
+          </div>
+        {% empty %}
+          <div class="text-center text-muted py-3">No users yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-shield-check me-2 text-primary"></i>Licenses by Tier</h5></div>
+      <div class="card-body">
+        {% for tier, count in license_stats.by_tier.items %}
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold">{{ tier }}</span>
+            <span class="badge bg-success">{{ count }} active</span>
+          </div>
+        {% empty %}
+          <div class="text-center text-muted py-3">No active licenses.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

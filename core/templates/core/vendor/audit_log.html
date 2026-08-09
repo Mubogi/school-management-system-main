@@ -1,0 +1,57 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-clock-history me-2" style="color: #4f46e5;"></i>Audit Log
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">System activity history</p>
+  </div>
+  <a href="{% url 'core:master_vendor_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back</a>
+</div>
+
+<form method="get" class="card border-0 shadow-sm mb-3">
+  <div class="card-body d-flex gap-2 flex-wrap">
+    <select name="action" class="form-select" style="max-width:240px;">
+      <option value="">All actions</option>
+      {% for code, label in action_choices %}<option value="{{ code }}" {% if action_filter == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#1e293b;color:#fff;">
+          <tr><th>Time</th><th>User</th><th>Action</th><th>Target</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+          <tr>
+            <td class="small text-muted" style="font-family:'JetBrains Mono',monospace;">{{ log.created_at|date:"M j, Y H:i" }}</td>
+            <td>{{ log.user.username|default:"system" }}</td>
+            <td><span class="badge bg-info text-dark">{{ log.action }}</span></td>
+            <td class="small">{{ log.target_type|default:"—" }}{% if log.target_name %} · {{ log.target_name }}{% endif %}</td>
+            <td class="small">{{ log.description|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No audit entries.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% if logs.has_other_pages %}
+<nav class="mt-3"><ul class="pagination justify-content-center">
+  {% if logs.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ logs.previous_page_number }}">‹</a></li>{% endif %}
+  <li class="page-item active"><span class="page-link">Page {{ logs.number }}</span></li>
+  {% if logs.has_next %}<li class="page-item"><a class="page-link" href="?page={{ logs.next_page_number }}">›</a></li>{% endif %}
+</ul></nav>
+{% endif %}
+{% endblock %}

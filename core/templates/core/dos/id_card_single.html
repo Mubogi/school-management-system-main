@@ -1,0 +1,62 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}ID Card — {{ student.first_name }} {{ student.last_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-person-vcard me-2" style="color: #4f46e5;"></i>Student ID Card
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">{{ student.first_name }} {{ student.last_name }} · {{ student.student_id }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'core:batch_id_cards' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back to Batch</a>
+  </div>
+</div>
+
+<div class="row g-4 justify-content-center">
+  <div class="col-lg-5 col-md-7">
+    <div class="card border-0 shadow">
+      <div class="card-body" style="padding:0;">
+        <!-- CR80 card front -->
+        <div style="border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
+          <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed,#db2777);padding:10px 14px;color:#fff;display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-weight:800;font-size:13px;letter-spacing:-0.2px;">{{ school.school_name }}</div>
+            <div style="font-size:8px;opacity:.85;font-weight:700;letter-spacing:.5px;">STUDENT ID</div>
+          </div>
+          <div style="padding:14px;background:linear-gradient(135deg,#f8fafc,#eff6ff);">
+            <div class="d-flex gap-3 align-items-center">
+              <div style="width:70px;height:80px;border-radius:8px;overflow:hidden;background:#e2e8f0;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.1);">
+                {% if student.passport_photo %}
+                  <img src="{{ student.passport_photo.url }}" style="width:100%;height:100%;object-fit:cover;">
+                {% else %}
+                  <i class="bi bi-person" style="font-size:32px;color:#94a3b8;"></i>
+                {% endif %}
+              </div>
+              <div>
+                <div style="font-weight:800;font-size:15px;color:#0f172a;">{{ student.first_name }} {{ student.last_name }}</div>
+                <div style="font-size:9px;color:#64748b;margin:2px 0;">Student</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4338ca;background:#e0e7ff;padding:2px 7px;border-radius:4px;display:inline-block;font-weight:700;">{{ student.student_id }}</div>
+              </div>
+            </div>
+            <div class="row g-2 mt-3" style="font-size:10px;">
+              <div class="col-6"><div style="color:#64748b;font-weight:700;text-transform:uppercase;font-size:8px;letter-spacing:.4px;">Class</div><div style="font-weight:700;color:#0f172a;">{{ student.current_class|default:"—" }}</div></div>
+              <div class="col-6"><div style="color:#64748b;font-weight:700;text-transform:uppercase;font-size:8px;letter-spacing:.4px;">DOB</div><div style="font-weight:700;color:#0f172a;">{{ student.date_of_birth|date:"j M Y"|default:"—" }}</div></div>
+              <div class="col-6"><div style="color:#64748b;font-weight:700;text-transform:uppercase;font-size:8px;letter-spacing:.4px;">Guardian</div><div style="font-weight:700;color:#0f172a;">{{ student.guardian_name|default:"—" }}</div></div>
+              <div class="col-6"><div style="color:#64748b;font-weight:700;text-transform:uppercase;font-size:8px;letter-spacing:.4px;">Phone</div><div style="font-weight:700;color:#0f172a;font-family:'JetBrains Mono',monospace;">{{ student.guardian_phone|default:"—" }}</div></div>
+            </div>
+          </div>
+          <div style="background:linear-gradient(90deg,#4f46e5,#7c3aed,#db2777);height:18px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:#fff;font-size:7px;font-weight:700;letter-spacing:1px;">{{ school.motto|default:"EXcellence & Integrity"|upper }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-3">
+      <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-2"></i>Print ID Card</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

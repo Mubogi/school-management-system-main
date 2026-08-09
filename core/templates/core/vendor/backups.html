@@ -1,0 +1,48 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Backup Management{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-database-check me-2" style="color: #4f46e5;"></i>Backup Management
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">System backup history & restore</p>
+  </div>
+  <div class="d-flex gap-2">
+    <form method="post" action="{% url 'core:vendor_create_backup' %}">
+      {% csrf_token %}
+      <button class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Create Backup</button>
+    </form>
+    <a href="{% url 'core:master_vendor_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+  </div>
+</div>
+
+{% if messages %}{% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endfor %}{% endif %}
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead style="background:#1e293b;color:#fff;"><tr><th>Created</th><th>Type</th><th>Size</th><th>Status</th><th>Created By</th></tr></thead>
+        <tbody>
+          {% for b in backups %}
+          <tr>
+            <td class="small" style="font-family:'JetBrains Mono',monospace;">{{ b.created_at|date:"M j, Y H:i" }}</td>
+            <td><span class="badge bg-info text-dark">{{ b.backup_type|default:"MANUAL" }}</span></td>
+            <td class="small">{{ b.file_size|default:"—" }}</td>
+            <td>{% if b.status == 'COMPLETED' %}<span class="badge bg-success">Completed</span>{% else %}<span class="badge bg-warning text-dark">{{ b.status|default:"Pending" }}</span>{% endif %}</td>
+            <td class="small">{{ b.created_by.username|default:"system" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">No backups recorded. Click "Create Backup" to make one.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

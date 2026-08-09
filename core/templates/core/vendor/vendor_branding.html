@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Vendor Branding{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h1 class="h3 mb-1 fw-bold" style="color: var(--text-primary);">
+      <i class="bi bi-palette me-2" style="color: #4f46e5;"></i>Vendor Branding
+    </h1>
+    <p class="mb-0 small" style="color: var(--text-secondary);">System-wide branding — hard-locked to Master Vendor</p>
+  </div>
+  <a href="{% url 'core:master_vendor_dashboard' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-2"></i>Back</a>
+</div>
+
+{% if messages %}{% for message in messages %}
+  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endfor %}{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-gear me-2 text-primary"></i>Branding Settings</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'core:vendor_update_branding' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-bold">Vendor Name</label>
+            <input type="text" name="vendor_name" class="form-control" value="JD Hub School System" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Vendor URL</label>
+            <input type="url" name="vendor_url" class="form-control" placeholder="https://vendor.example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Vendor Logo</label>
+            <input type="file" name="vendor_logo" class="form-control" accept="image/*">
+            <div class="form-text">PNG/SVG, max 2MB. Replaces the logo on all school portals.</div>
+          </div>
+          <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save Branding</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white"><h5 class="mb-0"><i class="bi bi-info-circle me-2 text-primary"></i>Registered Schools</h5></div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          {% for school in schools %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+              <div><div class="fw-bold">{{ school.school_name }}</div><div class="small text-muted">{{ school.school_initials_prefix|default:"—" }}</div></div>
+              {% if school.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+            </div>
+          {% empty %}
+            <div class="list-group-item text-center text-muted py-4">No schools.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1344,7 +1344,8 @@ def mark_entry_view(request):
             return redirect(next_url)
         return HttpResponse('OK')
 
-    raise Http404()
+    # GET: redirect to the marks bulk entry page (this is a POST action endpoint)
+    return redirect('core:marks_bulk_entry')
 
 
 @login_required

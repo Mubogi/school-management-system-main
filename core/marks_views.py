@@ -109,8 +109,14 @@ def marks_csv_download(request):
         raise Http404()
     school = get_user_school(profile)
     class_name = request.GET.get('class')
-    subject = get_object_or_404(Subject, pk=request.GET.get('subject'), school=school)
-    assessment = get_object_or_404(AssessmentType, pk=request.GET.get('assessment'), school=school)
+    subject_pk = request.GET.get('subject')
+    assessment_pk = request.GET.get('assessment')
+    # Missing required params — redirect to bulk entry instead of 404
+    if not subject_pk or not assessment_pk:
+        messages.error(request, 'Select a subject and assessment to download marks.')
+        return redirect('core:marks_bulk_entry')
+    subject = get_object_or_404(Subject, pk=subject_pk, school=school)
+    assessment = get_object_or_404(AssessmentType, pk=assessment_pk, school=school)
     term = request.GET.get('term') or school.active_term
     year = request.GET.get('year') or school.active_academic_year
 
@@ -127,7 +133,8 @@ def marks_csv_upload(request):
     if not user_has_role(profile, ['SECRETARY', 'DOS', 'CLASS_TEACHER', 'SUBJECT_TEACHER']):
         raise Http404()
     if request.method != 'POST':
-        raise Http404()
+        # GET on an upload action endpoint — send back to the bulk entry page
+        return redirect('core:marks_bulk_entry')
     school = get_user_school(profile)
     if not school.term_open_for_academics:
         messages.error(request, 'Term is not open for mark entry.')
