@@ -139,3 +139,37 @@ python manage.py migrate --settings=django_sms.settings
 python manage.py runserver 0.0.0.0:8000 --settings=django_sms.settings
 python main.py  # Desktop app with PyWebView
 ```
+
+## Apex UI Theme (light/dark toggle)
+- Shared assets: `core/static/core/css/apex-theme.css` + `core/static/core/js/apex-theme.js`
+- Mechanism: `data-theme="light|dark"` attr on `<html>`, persisted in `localStorage('theme')`.
+- No-flash: each base template has an inline `<script>` in `<head>` that sets `data-theme`
+  before paint (default `dark` when no stored pref).
+- Toggle button: `<button class="apex-theme-toggle" data-apex-toggle ...>`. Binding is done
+  in `apex-theme.js` via `addEventListener` (NOT inline `onclick` — inline onclick caused a
+  double-fire that canceled the toggle). `bindToggles()` guards with `__apexBound` and runs
+  on `readyState` interactive/complete or `DOMContentLoaded`.
+- Two base layouts carry the toggle + imports:
+  - `core/layout/base_layout.html` (Tailwind) — dashboards, staff, bursar, etc.
+  - `core/base.html` (Bootstrap) — master-vendor and older views.
+  - `school/base.html` (Bootstrap variant).
+- Standalone pages (own `<style>` blocks, hardcoded colors) carry inline dark OR light
+  overrides via `[data-theme="dark"]` / `[data-theme="light"]` selectors:
+  - `qr_connect.html`, `licensing/activate.html`, kiosk pages → dark overrides (light default)
+  - `home.html`, `setup_wizard.html` → light overrides (dark default)
+- `apex-theme.css` overrides Tailwind utility classes in dark mode (e.g. `bg-white` → dark).
+- Verified: toggle works bidirectionally on Tailwind dashboards, Bootstrap master-vendor,
+  qr-connect, licensing/activate, parent-kiosk; theme persists across navigation.
+
+### Known issues (pre-existing, NOT from theme work)
+- `licensing/management.html` and `licensing/sessions.html` `{% extends 'core/layout/sidebar_nav.html' %}`
+  but `sidebar_nav.html` is only a `{% block sidebar %}` partial with no HTML shell — so those
+  two pages render only the sidebar nav (no `<head>`, CSS, or toggle). They need to extend a
+  full base (e.g. `core/layout/base_layout.html`) instead.
+- `home.html` is never rendered: `HomeView` redirects authed users to their role dashboard and
+  unauthed users to login. The landing template is effectively dead.
+
+### Dev server template caching
+`runserver --noreload` serves cached compiled templates. After editing a template, restart
+the server (kill the PID, relaunch) for changes to take effect. Browser may also cache the
+HTML; use `?v=N` query param to bust.
