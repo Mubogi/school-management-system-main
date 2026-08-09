@@ -1,57 +1,254 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
+{% include 'core/pdf/apex_pdf_base.html' %}
 <style>
-  @page { size: A4; margin: 8mm; }
-  body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-  .page { page-break-after: always; }
-  .page:last-child { page-break-after: auto; }
-  .grid {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+    @bottom-center { content: ""; }
+  }
+  body { font-size: 9pt; }
+
+  .batch-header {
+    text-align: center; margin-bottom: 6mm; padding-bottom: 3mm;
+    border-bottom: 2px solid var(--apex-line);
+  }
+  .batch-header .title {
+    font-size: 13pt; font-weight: 800; color: var(--apex-primary);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .batch-header .title svg { width: 18px; height: 18px; }
+  .batch-header .sub { font-size: 8.5pt; color: var(--apex-muted); margin-top: 3px; }
+  .batch-header .guide { font-size: 7.5pt; color: var(--apex-green); font-weight: 700; margin-top: 4px; }
+
+  /* A4 grid: 2 cols × 4 rows of CR80 landscape cards with cut guides */
+  .card-grid {
     display: grid;
     grid-template-columns: repeat({{ cols }}, 1fr);
-    gap: 6mm;
+    grid-template-rows: repeat({{ rows }}, 1fr);
+    gap: 0;
     width: 100%;
   }
-  .card {
-    border: 1px solid #333;
-    border-radius: 4px;
+  .card-slot {
     padding: 4mm;
-    height: 42mm;
-    box-sizing: border-box;
-    text-align: center;
-    font-size: 9pt;
+    position: relative;
+    /* dashed cut guides on all sides */
   }
-  .card .logo { max-height: 12mm; margin-bottom: 2mm; }
-  .card .school { font-weight: bold; font-size: 8pt; color: #1e40af; }
-  .card .photo { width: 18mm; height: 22mm; object-fit: cover; border: 1px solid #ccc; margin: 2mm auto; display: block; }
-  .card .name { font-weight: bold; font-size: 10pt; }
-  .card .id { font-size: 9pt; color: #333; }
-  .card .class { font-size: 8pt; color: #666; }
-  .header { text-align: center; font-size: 10pt; margin-bottom: 4mm; color: #444; }
+  /* Cut guide lines between cards */
+  .card-slot::before, .card-slot::after {
+    content: ""; position: absolute; pointer-events: none;
+  }
+  .card-slot::before {
+    /* vertical cut line on right */
+    top: 0; bottom: 0; right: 0; width: 0;
+    border-right: 1px dashed #cbd5e1;
+  }
+  .card-slot::after {
+    /* horizontal cut line on bottom */
+    left: 0; right: 0; bottom: 0; height: 0;
+    border-bottom: 1px dashed #cbd5e1;
+  }
+  /* remove outer cut lines via page margin handling — last col/row keep internal only */
+  .card-slot.last-col::before { border-right: none; }
+  .card-slot.last-row::after { border-bottom: none; }
+
+  /* Scissors glyph at intersections */
+  .cut-mark {
+    position: absolute; color: #94a3b8; font-size: 7pt;
+    z-index: 5;
+  }
+  .cut-mark.right { right: -3pt; top: 50%; transform: translateY(-50%); }
+  .cut-mark.bottom { bottom: -4pt; left: 50%; transform: translateX(-50%); }
+
+  /* CR80 card — landscape 85.6mm × 54mm */
+  .id-card {
+    width: 100%; aspect-ratio: 85.6 / 54;
+    border-radius: 3mm; position: relative; overflow: hidden;
+    box-shadow: 0 3px 8px rgba(15,23,42,0.12), 0 0 0 0.5px rgba(226,232,240,0.9);
+    display: flex; flex-direction: column; justify-content: space-between;
+    background: #ffffff;
+  }
+
+  /* ===== FRONT ===== */
+  .id-card.front { padding: 2.5mm 3mm; color: var(--apex-ink); }
+  .security-pattern {
+    position: absolute; top: -12mm; right: -12mm; width: 30mm; height: 30mm;
+    background: radial-gradient(circle, rgba(99,102,241,0.14) 0%, rgba(236,72,153,0.09) 50%, rgba(255,255,255,0) 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1.5px solid var(--apex-soft); padding-bottom: 1.5mm; position: relative; z-index: 2;
+  }
+  .card-head .brand { display: flex; align-items: center; gap: 1.5mm; }
+  .school-badge {
+    width: 6mm; height: 6mm; border-radius: 1.5mm;
+    background: linear-gradient(135deg, var(--apex-primary), var(--apex-violet));
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .school-badge svg { width: 4mm; height: 4mm; }
+  .school-badge.logo img { object-fit: contain; border-radius: 1.5mm; }
+  .card-head .school-name { font-size: 7pt; font-weight: 800; letter-spacing: 0.3px; color: var(--apex-ink); }
+  .card-head .school-sub { font-size: 5.5pt; font-weight: 700; color: var(--apex-primary); }
+  .card-head .pass-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 5.5pt;
+    background: var(--apex-indigo-bg); border: 0.5px solid #c7d2fe;
+    padding: 0.5mm 1mm; border-radius: 1mm; font-weight: 800; color: var(--apex-indigo);
+  }
+
+  .card-body-land { display: flex; gap: 2.5mm; align-items: center; margin-top: 1.5mm; position: relative; z-index: 2; }
+  .photo-frame {
+    width: 14mm; height: 17mm; flex-shrink: 0; border-radius: 1.5mm;
+    border: 1px solid var(--apex-primary); background: var(--apex-soft);
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-frame .placeholder svg { width: 7mm; height: 7mm; color: #94a3b8; }
+  .student-details { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .student-name { font-size: 9pt; font-weight: 800; letter-spacing: -0.2px; color: var(--apex-ink); }
+  .student-role { font-size: 5.5pt; font-weight: 800; color: #0284c7; letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 1mm; }
+  .meta-grid {
+    background: var(--apex-soft); border: 0.5px solid var(--apex-line); border-radius: 1.5mm;
+    padding: 1.2mm 1.8mm; display: grid; grid-template-columns: 1fr 1fr; gap: 0.6mm 2mm;
+  }
+  .meta-item label { font-size: 4.5pt; font-weight: 700; color: var(--apex-muted); text-transform: uppercase; display: block; }
+  .meta-item span { font-size: 6pt; font-weight: 700; color: var(--apex-ink); font-family: 'JetBrains Mono', monospace; }
+  .meta-item span.danger { color: #e11d48; }
+
+  .card-footer-strip {
+    background: linear-gradient(90deg, var(--apex-primary), var(--apex-violet));
+    padding: 1mm 3mm; margin: 0 -3mm -2.5mm -3mm;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 5.5pt; font-weight: 800; letter-spacing: 0.3px; color: #fff;
+  }
+
+  /* ===== BACK ===== */
+  .id-card.back { padding: 2.5mm 3mm; }
+  .magnetic-stripe { background: #1e293b; height: 5mm; margin: -2.5mm -3mm 2mm -3mm; }
+  .back-title { font-size: 5.5pt; font-weight: 800; color: var(--apex-ink); margin-bottom: 1mm; letter-spacing: 0.3px; }
+  .terms-text { font-size: 5pt; color: #475569; line-height: 1.3; margin-bottom: 1.5mm; }
+  .back-bottom { display: flex; justify-content: space-between; align-items: flex-end; gap: 2mm; margin-top: auto; }
+  .back-bottom .left { flex: 1; }
+  .emerg { font-size: 5pt; font-weight: 700; color: var(--apex-indigo); margin-bottom: 0.5mm; }
+  .sig-script { font-family: 'Brush Script MT', cursive, sans-serif; font-size: 10pt; color: var(--apex-slate); margin-bottom: -1px; }
+  .sig-cap { font-size: 4.5pt; color: var(--apex-muted); font-weight: 700; }
+  .barcode-box {
+    background: var(--apex-soft); border: 0.5px solid var(--apex-line);
+    padding: 1mm 1.5mm; border-radius: 1mm; text-align: center; flex: 0 0 22mm;
+  }
+  .barcode-lines {
+    height: 5mm; border-radius: 0.5mm;
+    background: repeating-linear-gradient(90deg, #0f172a 0px, #0f172a 1px, #fff 1px, #fff 2px, #0f172a 2px, #0f172a 4px, #fff 4px, #fff 5px);
+  }
+  .barcode-num { font-family: 'JetBrains Mono', monospace; font-size: 5.5pt; font-weight: 800; color: var(--apex-ink); margin-top: 0.5mm; }
+
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .face-label {
+    position: absolute; top: 2mm; right: 4mm; font-size: 6pt; font-weight: 800;
+    color: #cbd5e1; letter-spacing: 0.5px;
+  }
 </style>
 </head>
 <body>
-{% for page in pages %}
-<div class="page">
-  <div class="header">{{ school_name }} — Student ID Cards ({{ class_name }})</div>
-  <div class="grid">
-    {% for student in page %}
-    <div class="card">
-      {% if school_logo_url %}<img src="{{ school_logo_url }}" class="logo" alt="">{% endif %}
-      <div class="school">{{ school_name }}</div>
-      {% if student.passport_photo %}
-      <img src="{{ student.passport_photo.url }}" class="photo" alt="">
-      {% else %}
-      <div class="photo" style="background:#eee;line-height:22mm;">No Photo</div>
-      {% endif %}
-      <div class="name">{{ student.first_name }} {{ student.last_name }}</div>
-      <div class="id">{{ student.student_id }}</div>
-      <div class="class">{{ student.current_class }}</div>
+
+{% if faces == 'front' or faces == 'both' %}
+  {% for page in front_pages %}
+  <div class="page">
+    {% if forloop.first %}
+    <div class="batch-header">
+      <div class="title">{% include 'core/pdf/apex_svg.html' with icon='contact' %} {{ school.school_name }} — Student ID Cards (FRONT)</div>
+      <div class="sub">{{ class_name }} · {{ front_pages|length }} sheet(s) · 8 cards per sheet</div>
+      <div class="guide">▸ Print front pages first, then re-feed paper for back pages · Cut along dashed lines</div>
     </div>
-    {% endfor %}
+    {% endif %}
+    <div class="card-grid">
+      {% for card in page %}
+      <div class="card-slot {% if forloop.counter|divisibleby:cols %}last-col{% endif %} {% if forloop.counter > per_page|add:-1 %}last-row{% endif %}">
+        <div class="id-card front">
+          <div class="security-pattern"></div>
+          <div class="card-head">
+            <div class="brand">
+              {% if school_logo_uri %}
+                <div class="school-badge logo"><img src="{{ school_logo_uri }}" style="width:6mm;height:6mm;"></div>
+              {% else %}
+                <div class="school-badge">{% include 'core/pdf/apex_svg.html' with icon='shield' %}</div>
+              {% endif %}
+              <div>
+                <div class="school-name">{{ school.school_name|upper|truncatechars:28 }}</div>
+                <div class="school-sub">OFFICIAL STUDENT ID · {{ school.address|truncatechars:20 }}</div>
+              </div>
+            </div>
+            <span class="pass-tag">2026 PASS</span>
+          </div>
+          <div class="card-body-land">
+            <div class="photo-frame">
+              {% if card.photo_uri %}
+                <img src="{{ card.photo_uri }}" alt="">
+              {% else %}
+                <div class="placeholder">{% include 'core/pdf/apex_svg.html' with icon='user' %}</div>
+              {% endif %}
+            </div>
+            <div class="student-details">
+              <div class="student-name">{{ card.student.first_name }} {{ card.student.last_name }}</div>
+              <div class="student-role">STUDENT PASS</div>
+              <div class="meta-grid">
+                <div class="meta-item"><label>STUDENT ID</label><span>{{ card.student.student_id }}</span></div>
+                <div class="meta-item"><label>CLASS</label><span>{{ card.student.current_class|truncatechars:14 }}</span></div>
+                <div class="meta-item"><label>DOB</label><span>{{ card.dob }}</span></div>
+                <div class="meta-item"><label>EXPIRY</label><span class="danger">{{ card.expiry }}</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer-strip">
+            <span>{{ school.school_initials_prefix|default:'SCH' }} · {{ school.phone|default:'' }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;">AUTHORIZED ID</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
   </div>
-</div>
-{% endfor %}
+  {% endfor %}
+{% endif %}
+
+{% if faces == 'back' or faces == 'both' %}
+  {% for page in back_pages %}
+  <div class="page">
+    {% if forloop.first %}
+    <div class="batch-header">
+      <div class="title">{% include 'core/pdf/apex_svg.html' with icon='contact' %} {{ school.school_name }} — Student ID Cards (BACK)</div>
+      <div class="sub">{{ class_name }} · Re-feed printed sheets to print backs · Align with cut lines</div>
+      <div class="guide">▸ Backs are mirrored per row so duplex printing aligns front↔back after cutting</div>
+    </div>
+    {% endif %}
+    <div class="card-grid">
+      {% for card in page %}
+      <div class="card-slot {% if forloop.counter|divisibleby:cols %}last-col{% endif %} {% if forloop.counter > per_page|add:-1 %}last-row{% endif %}">
+        <div class="id-card back">
+          <div class="magnetic-stripe"></div>
+          <div class="back-title">PROPERTY OF {{ school.school_name|upper }}</div>
+          <p class="terms-text">This identity card is non-transferable and remains the property of {{ school.school_name }}. If found, return to the Administrator's Office or nearest Police Station.</p>
+          <div class="back-bottom">
+            <div class="left">
+              <div class="emerg">EMERGENCY: {{ card.student.guardian_phone|default:school.phone }}</div>
+              <div class="sig-script">Head of School</div>
+              <div class="sig-cap">HEAD OF SCHOOL SIGNATURE</div>
+            </div>
+            <div class="barcode-box">
+              <div class="barcode-lines"></div>
+              <div class="barcode-num">*{{ card.student.student_id }}*</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+
 </body>
 </html>

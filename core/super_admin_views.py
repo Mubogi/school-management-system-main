@@ -331,6 +331,7 @@ def student_id_cards_pdf(request):
     class_name = request.GET.get('class', '')
     limit = request.GET.get('limit', 'all')
     per_page = int(request.GET.get('per_page', '8'))
+    faces = request.GET.get('faces', 'both')  # front | back | both
 
     students = Student.objects.filter(school=school, is_active=True)
     if class_name:
@@ -342,27 +343,43 @@ def student_id_cards_pdf(request):
         except ValueError:
             pass
 
-    cards = list(students)
-    pages = []
-    for i in range(0, len(cards), per_page):
-        pages.append(cards[i:i + per_page])
+    from core.views import image_file_uri
 
+    cards = []
+    for st in students:
+        cards.append({
+            'student': st,
+            'photo_uri': image_file_uri(st.passport_photo),
+            'dob': st.date_of_birth.strftime('%d/%m/%Y') if st.date_of_birth else '—',
+            'expiry': '12/2026',
+        })
+
+    # A4 portrait: 2 columns × 4 rows = 8 cards per side (CR80 landscape)
     cols = 2
-    if per_page <= 4:
-        rows = 2
-    elif per_page <= 6:
-        rows = 3
-    elif per_page <= 8:
-        rows = 4
-    else:
-        rows = 5
+    rows = 4
+    per_page = cols * rows
+
+    front_pages = []
+    back_pages = []
+    for i in range(0, len(cards), per_page):
+        chunk = cards[i:i + per_page]
+        # pad back chunk to align with front (mirror column order for duplex)
+        front_pages.append(chunk)
+        # For back side, reverse each row pair so duplex printing aligns front<->back
+        mirrored = []
+        for r in range(rows):
+            row_cards = chunk[r * cols:(r + 1) * cols]
+            mirrored.extend(row_cards[::-1])
+        back_pages.append(mirrored)
 
     html = render_to_string('core/pdf/student_id_cards.html', {
         **pdf_base_context(school),
-        'pages': pages,
-        'per_page': per_page,
+        'front_pages': front_pages,
+        'back_pages': back_pages,
         'cols': cols,
         'rows': rows,
+        'per_page': per_page,
+        'faces': faces,
         'class_name': class_name or 'All Classes',
     })
     return render_pdf_response(html, f'student_ids_{class_name or "all"}.pdf')

@@ -1,25 +1,33 @@
-{# School headed paper — modern center-aligned letterhead with logo, name, contacts #}
-<div class="letterhead" style="text-align:center; padding-bottom:12px; margin-bottom:16px; position:relative;">
-  <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg, #1e40af, #3b82f6, #8b5cf6, #ec4899); border-radius:2px;"></div>
-  {% if school_logo_uri %}
-  <img src="{{ school_logo_uri }}" alt="{{ school.school_name }}" style="height:70px; margin:12px auto 8px; display:block; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-  {% elif school.logo %}
-  <img src="{{ school.logo.url }}" alt="{{ school.school_name }}" style="height:70px; margin:12px auto 8px; display:block; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-  {% endif %}
-  <h1 style="margin:4px 0; font-size:22px; color:#0f172a; text-align:center; font-weight:700; letter-spacing:-0.02em;">{{ school.school_name }}</h1>
-  {% if school.motto %}<p style="margin:4px 0; font-style:italic; color:#6366f1; font-size:11px; font-weight:500;">{{ school.motto }}</p>{% endif %}
-  <div style="display:flex; justify-content:center; gap:16px; margin:8px 0; font-size:10px; color:#475569; flex-wrap:wrap;">
-    {% if school.address %}<span style="display:flex; align-items:center; gap:4px;"><span>📍</span>{{ school.address }}</span>{% endif %}
-    {% if school.phone %}<span style="display:flex; align-items:center; gap:4px;"><span>📞</span>{{ school.phone }}</span>{% endif %}
-    {% if school.email %}<span style="display:flex; align-items:center; gap:4px;"><span>✉️</span>{{ school.email }}</span>{% endif %}
-    {% if school.website %}<span style="display:flex; align-items:center; gap:4px;"><span>🌐</span>{{ school.website }}</span>{% endif %}
+{# School headed paper — Apex-themed letterhead with gradient crest bar, logo, name, contacts #}
+{% load i18n %}<div class="letterhead" style="text-align:center; padding-bottom:12px; margin-bottom:16px; position:relative;">
+  <div style="position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg, #4f46e5, #7c3aed, #db2777); border-radius:2px;"></div>
+  <div style="margin:14px auto 8px; display:flex; align-items:center; justify-content:center; gap:12px;">
+    {% if school_logo_uri %}
+      <img src="{{ school_logo_uri }}" alt="{{ school.school_name }}" style="height:58px; width:58px; object-fit:contain; display:block; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+    {% elif school.logo %}
+      <img src="{{ school.logo.url }}" alt="{{ school.school_name }}" style="height:58px; width:58px; object-fit:contain; display:block; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+    {% else %}
+      <div style="width:58px; height:58px; border-radius:13px; background:linear-gradient(135deg,#4f46e5,#7c3aed,#db2777); color:#fff; display:flex; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+    {% endif %}
+    <div style="text-align:left;">
+      <h1 style="margin:0; font-size:21px; color:#0f172a; text-align:left; font-weight:800; letter-spacing:-0.4px;">{{ school.school_name }}</h1>
+      {% if school.motto %}<p style="margin:2px 0 0; font-style:normal; color:#4f46e5; font-size:10px; font-weight:700; letter-spacing:0.5px;">{{ school.motto|upper }}</p>{% endif %}
+    </div>
+  </div>
+  <div style="display:flex; justify-content:center; gap:14px; margin:6px 0; font-size:9.5px; color:#64748b; flex-wrap:wrap;">
+    {% if school.address %}<span style="display:flex; align-items:center; gap:4px;">📍 {{ school.address }}</span>{% endif %}
+    {% if school.phone %}<span style="display:flex; align-items:center; gap:4px;">📞 {{ school.phone }}</span>{% endif %}
+    {% if school.email %}<span style="display:flex; align-items:center; gap:4px;">✉️ {{ school.email }}</span>{% endif %}
+    {% if school.website %}<span style="display:flex; align-items:center; gap:4px;">🌐 {{ school.website }}</span>{% endif %}
   </div>
   {% if school.head_teacher_name or school.bursar_name or school.dos_name %}
-  <div style="display:flex; justify-content:center; gap:12px; margin:6px 0; font-size:9px; color:#64748b;">
+  <div style="display:flex; justify-content:center; gap:12px; margin:6px 0; font-size:8.5px; color:#94a3b8;">
     {% if school.head_teacher_name %}<span><strong style="color:#475569;">Head Teacher:</strong> {{ school.head_teacher_name }}</span>{% endif %}
     {% if school.bursar_name %}<span><strong style="color:#475569;">Bursar:</strong> {{ school.bursar_name }}</span>{% endif %}
     {% if school.dos_name %}<span><strong style="color:#475569;">DOS:</strong> {{ school.dos_name }}</span>{% endif %}
   </div>
   {% endif %}
-  <div style="margin-top:10px; border-bottom:2px solid #e2e8f0;"></div>
+  <div style="margin-top:10px; border-bottom:3px double #e2e8f0;"></div>
 </div>
