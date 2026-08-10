@@ -12,3 +12,4 @@ apscheduler>=3.10
 nuitka>=2.0
 pyinstaller>=6.0
 playwright>=1.40
+pymupdf>=1.24

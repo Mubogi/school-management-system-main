@@ -55,6 +55,51 @@ def goto(page, path, wait=2):
     time.sleep(wait)
 
 
+def _capture_pdf_as_png(context, path, filename):
+    """Download a PDF from the server and render its first page as a PNG.
+
+    Uses the browser context's APIRequestContext so the logged-in session
+    cookies are reused. Rasterizes page 1 via PyMuPDF (preferred) or pdf2image.
+    """
+    resp = context.request.get(f"{BASE_URL}{path}")
+    if resp.status != 200:
+        raise RuntimeError(f"HTTP {resp.status}")
+    pdf_bytes = resp.body()
+    out = SCREENSHOTS_DIR / filename
+
+    try:
+        import pymupdf
+        doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+        page0 = doc.load_page(0)
+        pix = page0.get_pixmap(matrix=pymupdf.Matrix(2, 2))
+        pix.save(str(out))
+        doc.close()
+        return
+    except ImportError:
+        pass
+
+    try:
+        import fitz
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        page0 = doc.load_page(0)
+        pix = page0.get_pixmap(matrix=fitz.Matrix(2, 2))
+        pix.save(str(out))
+        doc.close()
+        return
+    except ImportError:
+        pass
+
+    try:
+        from pdf2image import convert_from_bytes
+        images = convert_from_bytes(pdf_bytes, dpi=150, first_page=1, last_page=1)
+        images[0].save(str(out), "PNG")
+        return
+    except Exception:
+        pass
+
+    raise RuntimeError("No PDF renderer available (install PyMuPDF or pdf2image)")
+
+
 def generate_screenshots():
     """Generate all required screenshots."""
     print("\n🖼️  JD Hub School Management System - Screenshot Generator")
@@ -147,6 +192,43 @@ def generate_screenshots():
         goto(page, "/notifications/templates/")
         shot(page, "Message Templates", "29_message_templates.png", "COMM")
 
+        # ---- PDF REPORTS (Apex-themed, NEW) ----
+        # PDFs return Content-Disposition: attachment, so we download the
+        # bytes via the browser context's APIRequestContext (reuses session
+        # cookies) and rasterize page 1 with PyMuPDF.
+        print("\n=== PDF REPORTS (Apex) ===")
+        pdf_pages = [
+            ("/pdf/school-overview/", "30_pdf_school_overview.png", "School Overview PDF"),
+            ("/pdf/staff-list/", "31_pdf_staff_list.png", "Staff List PDF"),
+            ("/pdf/student-list/", "32_pdf_student_list.png", "Student Register PDF"),
+            ("/pdf/class-list/Senior%201%20Red/", "33_pdf_class_list.png", "Class List PDF"),
+        ]
+        for path, fname, label in pdf_pages:
+            try:
+                _capture_pdf_as_png(context, path, fname)
+                size_kb = (SCREENSHOTS_DIR / fname).stat().st_size / 1024
+                print(f"  [PDF] {label}")
+                print(f"    ✓ {fname} ({size_kb:.0f} KB)")
+            except Exception as e:
+                print(f"    (skipped {label}: {str(e)[:80]})")
+        # Teacher performance — try a few profile IDs until one renders.
+        try:
+            captured = False
+            for tid in ("1", "2", "3", "4", "5"):
+                try:
+                    _capture_pdf_as_png(context, f"/pdf/teacher-performance/{tid}/", "34_pdf_teacher_performance.png")
+                    size_kb = (SCREENSHOTS_DIR / "34_pdf_teacher_performance.png").stat().st_size / 1024
+                    print(f"  [PDF] Teacher Performance PDF (id={tid})")
+                    print(f"    ✓ 34_pdf_teacher_performance.png ({size_kb:.0f} KB)")
+                    captured = True
+                    break
+                except Exception:
+                    continue
+            if not captured:
+                print("    (skipped teacher-perf: no valid teacher id found)")
+        except Exception as e:
+            print(f"    (skipped teacher-perf: {str(e)[:80]})")
+
         print("\n" + "=" * 60)
         print("✅ All screenshots generated successfully!")
         print(f"📁 Location: {SCREENSHOTS_DIR}")
@@ -167,7 +249,10 @@ def generate_screenshots():
 
     finally:
         if playwright:
-            playwright.stop()
+            try:
+                playwright.stop()
+            except Exception:
+                pass
 
     return True
 
