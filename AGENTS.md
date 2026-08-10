@@ -34,6 +34,17 @@
 - Mixins: RoleRequiredMixin, MasterVendorMixin, SchoolAdminMixin, etc.
 - Hierarchy: MASTER_VENDOR > SCHOOL_ADMIN > HEAD_TEACHER > DOS > ACCOUNTANT > SECRETARY > CLASS_TEACHER > SUBJECT_TEACHER > PARENT
 
+## Critical: Single-School is_active Lockout
+- RoleRequiredMixin.dispatch enforces the inactive-school lockout ONLY when
+  SchoolConfiguration.objects.count() > 1 (multi-school vendor deployments).
+- A single-school offline LAN desktop install has exactly one school record
+  and must NEVER be locked out by a stray is_active toggle.
+- SchoolConfiguration.get_school() returns order_by('pk').first() regardless of
+  is_active — deactivation is a soft state for multi-school vendor mode only.
+- Do NOT re-add an unconditional `if not school.is_active: raise Http404` check
+  to RoleRequiredMixin — that single line rendered the entire app unusable
+  for all staff whenever the one school record was toggled inactive.
+
 ## First-Run Setup
 - URL: /setup/
 - Creates initial Jordan admin (password: 20020120)
@@ -88,6 +99,27 @@
 - /licensing/manage/ - License Management
 - /licensing/emergency-recovery/ - Password Recovery
 - /system/license-status/ - View & Upgrade License
+
+### Printable PDF Reports (Apex-themed)
+- /pdf/report/<student_id>/[<report_type>/] - Student report card
+- /pdf/class-report/<class_name>/<report_type>/ - Class term reports
+- /pdf/broadsheet/<class_name>/ - Class broadsheet
+- /pdf/subject/<subject_id>/ - Subject performance
+- /pdf/assessment/<assessment_id>/ - Assessment report
+- /pdf/receipt/<receipt_id>/ - Payment receipt
+- /pdf/financial-statement/<student_id>/ - Student financial statement
+- /pdf/demand-letter/<student_id>/ - Fee demand letter
+- /pdf/fee-report/ - Fee collection report
+- /pdf/cleared-students/ - Fee clearance list
+- /pdf/outstanding-students/ - Outstanding balances list
+- /pdf/clearance/<student_id>/ - Fee clearance certificate
+- /pdf/teacher-performance/<teacher_id>/ - Teacher performance summary (NEW)
+- /pdf/class-list/<class_name>/ - Printable class register (NEW)
+- /pdf/staff-list/ - School staff list (NEW)
+- /pdf/student-list/ - School-wide student register (NEW)
+- /pdf/school-overview/ - Whole-school overview report (NEW)
+- Helpers: pdf_base_context(school), render_pdf_response(html, filename, school=school)
+- Theme: core/templates/core/pdf/apex_pdf_base.html ({% include %} once per template)
 
 ## Feature Flags (Licensing)
 - PHOTO_UPLOAD - Student photos
