@@ -923,9 +923,14 @@ class RoleRequiredMixin:
         profile = get_profile(request.user)
         if not can_access_view(profile, self.allowed_roles):
             raise Http404()
-        school = get_user_school(profile)
-        if school and not school.is_active and profile.role != 'SUPER_ADMIN':
-            raise Http404()
+        # Only enforce the inactive-school lockout in genuine multi-school
+        # (vendor) deployments. A single-school offline LAN desktop install has
+        # exactly one school record and must never be locked out by a stray
+        # is_active toggle — that would render the whole app unusable.
+        if SchoolConfiguration.objects.count() > 1:
+            school = get_user_school(profile)
+            if school and not school.is_active and profile.role != 'SUPER_ADMIN':
+                raise Http404()
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -1214,6 +1219,7 @@ class ClassTeacherDashboardView(RoleRequiredMixin, TemplateView):
         assignment = ClassTeacherAssignment.objects.filter(teacher=profile).first()
         if assignment and school:
             ctx['assigned_class'] = assignment.school_class
+            ctx['my_class'] = assignment.school_class.name
             ctx['students'] = Student.objects.filter(school=school, current_class=assignment.school_class.name)
         return ctx
 
@@ -1687,6 +1693,170 @@ def subject_performance_pdf(request, subject_id, term=None, academic_year=None):
     }
     html = render_to_string('core/pdf/subject_performance.html', context)
     return render_pdf_response(html, f'{subject.name}_performance_{academic_year}_{term}.pdf', school=school)
+
+
+@login_required
+def teacher_performance_pdf(request, teacher_id, term=None, academic_year=None):
+    """Performance report for a specific teacher across all assigned subjects/classes."""
+    profile = get_profile(request.user)
+    require_role(profile, ACADEMIC_PDF_ROLES)
+    school = get_user_school(profile)
+    teacher = get_object_or_404(UserProfile, pk=teacher_id, school=school,
+                               role__in=['CLASS_TEACHER', 'SUBJECT_TEACHER', 'DOS', 'HEAD_TEACHER', 'SCHOOL_ADMIN'])
+    term = term or school.active_term
+    academic_year = academic_year or school.active_academic_year
+
+    teacher_name = (f"{teacher.user.first_name} {teacher.user.last_name}".strip()
+                    or teacher.user.username)
+
+    # Subjects assigned to this teacher, with per-subject average.
+    assignments = TeacherSubjectAssignment.objects.filter(teacher=teacher)
+    subject_rows = []
+    total_weighted = Decimal('0.00')
+    total_count = 0
+    seen_keys = set()
+    for asg in assignments:
+        key = (asg.subject_id, asg.assigned_class)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        entries = MarkEntry.objects.filter(
+            subject=asg.subject, grading_term=term, academic_year=academic_year,
+            student__current_class=asg.assigned_class,
+        )
+        if not entries:
+            continue
+        avg = sum((e.weighted_score() for e in entries), Decimal('0.00')) / Decimal(len(entries))
+        subject_rows.append({
+            'subject': asg.subject, 'class_name': asg.assigned_class,
+            'student_count': entries.count(),
+            'average': avg.quantize(Decimal('0.01')),
+            'grade': grade_from_score(float(avg)),
+        })
+        total_weighted += avg
+        total_count += 1
+
+    subject_rows.sort(key=lambda r: r['average'], reverse=True)
+    overall_avg = (total_weighted / total_count).quantize(Decimal('0.01')) if total_count else '0.00'
+
+    # Class teacher assignments.
+    class_assignments = []
+    for ca in ClassTeacherAssignment.objects.filter(teacher=teacher).select_related('school_class'):
+        class_assignments.append({
+            'class_name': ca.school_class.name, 'is_form_teacher': True,
+            'student_count': Student.objects.filter(school=school, current_class=ca.school_class.name, is_active=True).count(),
+        })
+    for asg in assignments:
+        if asg.assigned_class and asg.assigned_class not in [c['class_name'] for c in class_assignments]:
+            class_assignments.append({
+                'class_name': asg.assigned_class, 'is_form_teacher': False,
+                'student_count': Student.objects.filter(school=school, current_class=asg.assigned_class, is_active=True).count(),
+            })
+
+    context = {
+        **pdf_base_context(school),
+        'teacher_name': teacher_name, 'teacher': teacher,
+        'term': term, 'academic_year': academic_year,
+        'subject_rows': subject_rows, 'overall_avg': overall_avg,
+        'class_assignments': class_assignments,
+    }
+    safe_name = re.sub(r'[^A-Za-z0-9]+', '_', teacher_name)
+    html = render_to_string('core/pdf/apex_teacher_performance.html', context)
+    return render_pdf_response(html, f'teacher_{safe_name}_performance_{academic_year}_{term}.pdf', school=school)
+
+
+@login_required
+def class_list_pdf(request, class_name):
+    """Printable class list (student register for a single class)."""
+    profile = get_profile(request.user)
+    require_role(profile, ACADEMIC_PDF_ROLES)
+    school = get_user_school(profile)
+    students = Student.objects.filter(school=school, current_class=class_name, is_active=True).order_by('last_name', 'first_name')
+    context = {
+        **pdf_base_context(school),
+        'class_name': class_name, 'students': students,
+        'term': school.active_term,
+    }
+    html = render_to_string('core/pdf/apex_class_list.html', context)
+    return render_pdf_response(html, f'class_list_{class_name}.pdf', school=school)
+
+
+@login_required
+def staff_list_pdf(request):
+    """Printable staff list (all users with profiles in the school)."""
+    profile = get_profile(request.user)
+    require_role(profile, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'DOS'])
+    school = get_user_school(profile)
+    staff = UserProfile.objects.filter(school=school).select_related('user').order_by('role', 'user__username')
+    active_count = sum(1 for p in staff if p.is_active)
+    context = {
+        **pdf_base_context(school),
+        'staff': staff, 'active_count': active_count,
+        'inactive_count': staff.count() - active_count,
+    }
+    html = render_to_string('core/pdf/apex_staff_list.html', context)
+    return render_pdf_response(html, 'staff_list.pdf', school=school)
+
+
+@login_required
+def student_list_pdf(request):
+    """Printable school-wide student register."""
+    profile = get_profile(request.user)
+    require_role(profile, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER', 'DOS', 'SECRETARY'])
+    school = get_user_school(profile)
+    students = Student.objects.filter(school=school).order_by('current_class', 'last_name', 'first_name')
+    active_count = students.filter(is_active=True).count()
+    class_names = students.values_list('current_class', flat=True).distinct()
+    context = {
+        **pdf_base_context(school),
+        'students': students, 'active_count': active_count,
+        'class_count': len(set(class_names)),
+        'term': school.active_term, 'academic_year': school.active_academic_year,
+    }
+    html = render_to_string('core/pdf/apex_student_list.html', context)
+    return render_pdf_response(html, 'student_list.pdf', school=school)
+
+
+@login_required
+def school_overview_pdf(request):
+    """Whole-school overview: enrolment, staff, classes, subjects, finances."""
+    profile = get_profile(request.user)
+    require_role(profile, ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'HEAD_TEACHER'])
+    school = get_user_school(profile)
+    term = school.active_term
+    academic_year = school.active_academic_year
+
+    classes_qs = SchoolClass.objects.filter(school=school).order_by('name')
+    classes = []
+    for c in classes_qs:
+        qs = Student.objects.filter(school=school, current_class=c.name, is_active=True)
+        classes.append({
+            'name': c.name, 'student_count': qs.count(),
+            'boys': qs.filter(gender='M').count(),
+            'girls': qs.filter(gender='F').count(),
+        })
+    if not classes:
+        for name in Student.objects.filter(school=school, is_active=True).values_list('current_class', flat=True).distinct():
+            qs = Student.objects.filter(school=school, current_class=name, is_active=True)
+            classes.append({'name': name, 'student_count': qs.count(),
+                            'boys': qs.filter(gender='M').count(), 'girls': qs.filter(gender='F').count()})
+
+    total_students = Student.objects.filter(school=school, is_active=True).count()
+    total_staff = UserProfile.objects.filter(school=school, is_active=True).count()
+    total_subjects = Subject.objects.filter(school=school).count()
+    total_marks = MarkEntry.objects.filter(student__school=school, grading_term=term, academic_year=academic_year).count()
+    total_collected = FeePaymentLedger.objects.filter(student__school=school).aggregate(
+        t=models.Sum('amount_paid'))['t'] or Decimal('0')
+
+    context = {
+        **pdf_base_context(school),
+        'school': school, 'term': term, 'academic_year': academic_year,
+        'classes': classes, 'total_students': total_students,
+        'total_staff': total_staff, 'total_subjects': total_subjects,
+        'total_marks': total_marks, 'total_collected': total_collected,
+    }
+    html = render_to_string('core/pdf/apex_school_overview.html', context)
+    return render_pdf_response(html, f'school_overview_{academic_year}_{term}.pdf', school=school)
 
 
 # ============================================================================

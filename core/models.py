@@ -85,7 +85,14 @@ class SchoolConfiguration(models.Model):
 
     @classmethod
     def get_school(cls):
-        """Return the single school record for this deployment."""
+        """Return the single school record for this deployment.
+
+        For single-school (offline LAN desktop) deployments there is exactly one
+        school record, and it must always be reachable. If it was toggled
+        inactive (e.g. by the Master Vendor control panel) we keep returning it
+        so the app keeps working; deactivation is a soft state used for
+        multi-school vendor deployments, not a hard lockout for the host school.
+        """
         school = cls.objects.order_by('pk').first()
         if school is None:
             school = cls.objects.create(
