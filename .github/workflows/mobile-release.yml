@@ -1,0 +1,92 @@
+name: Mobile APK (Flutter)
+
+# Standalone offline mobile edition. Built from the Flutter project in
+# mobile-app/, independent of the Django/PyInstaller desktop edition and the
+# web edition. Tag with "mobile-v*" to publish.
+on:
+  push:
+    tags:
+      - "mobile-v*"
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.24.5'
+          cache: true
+
+      - name: Configure APK signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd mobile-app/android
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+            cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=${ANDROID_STORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+          else
+            echo "No signing secret configured - generating an ephemeral key."
+            keytool -genkeypair -v -keystore release.keystore -alias jdhub \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass jdhub-offline -keypass jdhub-offline \
+              -dname "CN=JD Hub School, O=Jordan Design Hub, C=UG"
+            cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=jdhub-offline
+          keyAlias=jdhub
+          keyPassword=jdhub-offline
+          EOF
+          fi
+
+      - name: Build release APKs
+        working-directory: mobile-app
+        run: |
+          flutter pub get
+          flutter build apk --release --split-per-abi
+          flutter build apk --release
+
+      - name: Collect and verify APKs
+        run: |
+          mkdir -p release-assets
+          OUT=mobile-app/build/app/outputs/flutter-apk
+          cp "$OUT/app-arm64-v8a-release.apk"   release-assets/JDHubSchoolMobile-arm64.apk
+          cp "$OUT/app-armeabi-v7a-release.apk" release-assets/JDHubSchoolMobile-arm32.apk
+          cp "$OUT/app-release.apk"             release-assets/JDHubSchoolMobile.apk
+          BT="$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)"
+          APKSIGNER="$ANDROID_HOME/build-tools/$BT/apksigner"
+          for f in release-assets/*.apk; do
+            echo "== $f ($(stat -c%s "$f") bytes)"
+            "$APKSIGNER" verify -v "$f" | grep -E "Verified using v1|Verified using v2|Number of signers"
+            "$APKSIGNER" verify "$f" || (echo "$f is NOT signed" >&2 && exit 1)
+          done
+
+      - name: Write checksums
+        run: |
+          cd release-assets
+          sha256sum *.apk > SHA256SUMS-mobile-apk.txt
+          cat SHA256SUMS-mobile-apk.txt
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
