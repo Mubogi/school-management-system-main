@@ -1,8 +1,9 @@
 // Top-level build file.
 plugins {
-    id 'com.android.application' version '8.5.2' apply false
+    id 'com.android.application' version '8.2.2' apply false
     // Chaquopy embeds a Python interpreter so the full Django app runs on the
-    // phone itself (no PC required). Chaquopy is MIT-licensed and free to use
-    // in commercial apps.
-    id 'com.chaquo.python' version '16.1.0' apply false
+    // phone itself (no PC required). 15.0.1 is the newest release whose minimum
+    // Android API is 21 (Chaquopy 16+ requires 24), so the offline app installs
+    // on Android 5.0 and newer as well as current phones.
+    id 'com.chaquo.python' version '15.0.1' apply false
 }

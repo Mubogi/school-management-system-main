@@ -9,10 +9,13 @@ android {
 
     defaultConfig {
         applicationId "com.jordandesignhub.school"
-        minSdk 24
+        // Android 5.0+. Chaquopy 15 supports API 21+, and the app's own code
+        // uses no newer API, so older (Android 5/6) phones can install it too -
+        // they were the ones showing "there was a problem parsing the package".
+        minSdk 21
         targetSdk 34
-        versionCode 7
-        versionName "1.2.5"
+        versionCode 8
+        versionName "1.3.0"
 
         ndk {
             // The embedded Python interpreter is native code. Real phones are
@@ -73,8 +76,10 @@ android {
 
 chaquopy {
     defaultConfig {
-        // Pin the Python version so the CI build machine and the APK agree.
-        version = "3.11"
+        // Python 3.10 is the newest interpreter Chaquopy 15 supports that also
+        // keeps the 32-bit armeabi-v7a ABI (dropped for 3.12+), so older phones
+        // stay supported. Pinned so the CI machine and the APK agree.
+        version = "3.10"
     }
 }
 

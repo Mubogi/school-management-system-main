@@ -7,7 +7,7 @@
 ; =============================================================================
 
 #define MyAppName "JD Hub School Management System"
-#define MyAppVersion "1.2.5"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "Jordan Design Hub (JD Hub)"
 #define MyAppURL "https://jordandesignhub.com"
 #define MyAppExeName "JDHubSchoolSystem.exe"

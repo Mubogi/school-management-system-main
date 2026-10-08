@@ -306,15 +306,16 @@ Key pieces:
   bundles the project into assets/jdhub; make_icons.py generates legacy +
   adaptive launcher icons. Release APKs MUST be signed (CI signs them).
   reportlab is unavailable on Android -> PDFs use the fpdf2 fallback.
-- Install failures ("There was a problem parsing the package"): the released APK
-  is minSdk 24, so every installable device already supports the v2 signature.
-  The usual causes are (1) a truncated download on a metered connection - compare
-  the file against the published SHA256SUMS-apk.txt - or (2) an Android 5/6 phone,
-  which the app cannot support because Chaquopy 16 requires minSdk 24. Do NOT gate
-  CI on the v1/JAR signature: apksigner refuses to add it for minSdk >= 24, which
-  only fails the build and stops the Release assets from publishing. MainActivity
-  sets jdhub.bundledir and jdhub.datadir explicitly; startup errors are shown as
-  text on the status panel (scrollable) rather than a generic message.
+- Install failures ("There was a problem parsing the package"): the file on
+  GitHub has been verified with apksigner + zipalign (it is valid), so the error
+  is on the phone side. Causes: (1) a truncated download on a metered connection
+  - compare the file against the published SHA256SUMS-apk.txt; (2) an old Android
+  version. The app now targets minSdk 21 via Chaquopy 15.0.1 + AGP 8.2.2 + Python
+  3.10 (Chaquopy 16+/Python 3.11 require minSdk 24). Do NOT gate CI on the
+  v1/JAR signature: apksigner refuses to add it for minSdk >= 24, which only
+  fails the build and stops the Release assets from publishing. MainActivity sets
+  jdhub.bundledir and jdhub.datadir explicitly; startup errors are shown as text
+  on the status panel (scrollable) rather than a generic message.
 - Icons: tools/generate_brand_icons.py is the single source for the Windows
   .ico, the Android launcher (legacy + adaptive, blue background) and the web/PWA
   icons. android-apk/make_icons.py delegates to it. Regenerate after changing
