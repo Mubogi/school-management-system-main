@@ -271,3 +271,35 @@ Plus Jakarta Sans and old blue palette (#1e40af/#3b82f6/#8b5cf6/#6366f1/#ec4899)
 build PDFs natively with ReportLab Platypus (not HTML). These are only used when the HTML→PDF
 renderers all fail. They retain their own hardcoded colors (teal/coral) — acceptable as a
 last-resort fallback since the primary path is WeasyPrint + Apex HTML templates.
+
+## Offline (sellable) edition - Phase 2
+Two editions coexist, chosen by JDHUB_EDITION (see core/edition.py):
+- online (default for a source checkout): the original server build.
+- offline: the packaged build sold to clients; JDHUB_EDITION=offline
+  (also auto-detected when frozen). DEBUG off; cloud/sync probes skipped.
+
+Key pieces:
+- licensing/activation.py - HMAC-signed activation codes
+  (SMS-<TIER>-<base64>-<sig>) carrying tier/expiry/HWID/features/school.
+  Secret is JDHUB_LICENSE_SECRET (default is a dev placeholder - set it before
+  selling keys). Offline REJECTS the unsigned legacy format so paid copies
+  cannot be forged; the online edition still accepts it. Opt back in with
+  JDHUB_ALLOW_LEGACY_KEYS=1.
+- licensing/management/commands/licensekey.py - generate / apply CLI.
+- main.py - offline launcher: file lock, migrate, seed superuser, LAN bind,
+  backup-on-exit, rotating log.
+- QR: qr_code_image() and the connect page use get_lan_ip() and
+  get_server_port(request) so the code encodes the real
+  http://<lan-ip>:<port>/accounts/login/.
+- django_sms/settings.py searches sys._MEIPASS (BUNDLE_DIR) for bundled
+  templates/static so the PyInstaller onedir build resolves assets; writable
+  data (db.sqlite3, media/, secret_key.txt, staticfiles/) lives in DATA_DIR
+  next to the executable.
+- Packaging: school_system.spec, build.py, BUILD_FOR_WINDOWS.bat,
+  installer_setup.iss, images/icon.ico, version_info.txt.
+- android-apk/ - thin WebView client (no student data on the phone) that
+  connects over LAN by QR scan or manual address. build_apk.sh builds it.
+- OFFLINE_EDITION.md - build/licensing/support guide.
+
+PDF strategy (unchanged, works offline): HTML->PDF tries Playwright/Chromium
+-> WeasyPrint -> xhtml2pdf -> ReportLab fallback (render_pdf_response).
