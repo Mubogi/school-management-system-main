@@ -24,8 +24,7 @@ project_hidden = collect_submodules('django_sms') + collect_submodules('core') \
     + collect_submodules('utils')
 # Third-party libraries with dynamic submodules
 thirdparty_hidden = collect_submodules('whitenoise') + collect_submodules('reportlab') \
-    + collect_submodules('qrcode') + collect_submodules('PIL') \
-    + collect_submodules('pywebview')
+    + collect_submodules('qrcode') + collect_submodules('PIL')
 
 hiddenimports = list(set(
     django_hidden + project_hidden + thirdparty_hidden + [
@@ -39,10 +38,16 @@ hiddenimports = list(set(
         'whitenoise',
         'whitenoise.middleware',
         'cryptography',
-        'pywebview',
-        'pywebview.platforms',
     ]
 ))
+
+# pywebview provides the native window. It is optional (main.py falls back to
+# the system browser), so only bundle it when it is actually installed.
+try:
+    import pywebview  # noqa: F401
+    hiddenimports += collect_submodules('pywebview')
+except ImportError:
+    pass
 
 # --- Data files: templates, static assets, migrations, version info ---
 datas = []

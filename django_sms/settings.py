@@ -16,6 +16,11 @@ _INSTANCE_DIR_ENV = os.environ.get('JDHUB_INSTANCE_DIR', '').strip()
 # In a frozen (PyInstaller) bundle this resolves to the read-only bundle dir.
 SOURCE_ROOT = Path(__file__).resolve().parent.parent
 
+# In a PyInstaller onedir bundle the collected read-only assets live in the
+# ``_internal`` folder (sys._MEIPASS), while writable data lives next to the
+# executable. Both are searched so templates/static resolve in every layout.
+BUNDLE_DIR = Path(getattr(sys, '_MEIPASS', SOURCE_ROOT))
+
 if _INSTANCE_DIR_ENV:
     # Portable/frozen builds keep every writable file (source code, templates,
     # database, media) inside one folder so the bundle can run from anywhere.
@@ -111,6 +116,8 @@ TEMPLATES = [
         'DIRS': [
             BASE_DIR / 'school' / 'templates',
             BASE_DIR / 'licensing' / 'templates',
+            BUNDLE_DIR / 'school' / 'templates',
+            BUNDLE_DIR / 'licensing' / 'templates',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -159,10 +166,14 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    BASE_DIR / 'school' / 'static',
-    BASE_DIR / 'core' / 'static',
+    d for d in (
+        BASE_DIR / 'school' / 'static',
+        BASE_DIR / 'core' / 'static',
+        BUNDLE_DIR / 'school' / 'static',
+        BUNDLE_DIR / 'core' / 'static',
+    ) if d.is_dir()
 ]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = DATA_DIR / 'staticfiles'
 WHITENOISE_USE_FINDERS = True
 
 MEDIA_URL = '/media/'
