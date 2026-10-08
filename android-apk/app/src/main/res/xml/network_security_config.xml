@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app talks to the school's own server over the local Wi-Fi/hotspot,
+     so plain HTTP to private addresses must be allowed. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

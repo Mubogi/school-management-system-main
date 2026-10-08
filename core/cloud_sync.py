@@ -18,6 +18,12 @@ _scheduler = None
 
 
 def is_online(timeout: float = 2.0) -> bool:
+    # The offline edition never performs outbound connectivity probes: there is
+    # no cloud account configured and a probe to the internet would only add a
+    # 2s stall on every call in a disconnected classroom.
+    from core.edition import is_offline
+    if is_offline():
+        return False
     try:
         sock = socket.create_connection(('8.8.8.8', 53), timeout=timeout)
         sock.close()

@@ -2823,18 +2823,41 @@ def get_base_url(request):
     return 'http://localhost:8000'
 
 
+def get_server_port(request=None, default=8000):
+    """Port the server is listening on, taken from the request when possible."""
+    if request is not None:
+        try:
+            host = request.get_host()
+            if ':' in host:
+                return host.rsplit(':', 1)[1]
+        except Exception:
+            pass
+    return str(os.environ.get('JDHUB_PORT', default))
+
+
 def get_lan_ip():
-    """Get the local LAN IP address."""
+    """Get the local LAN IP address.
+
+    Prefers the source address the OS would use for a real LAN peer. Uses a
+    UDP socket to a private-range address so the lookup works on an isolated
+    classroom network/hotspot with no internet route or DNS.
+    """
     import socket
     try:
-        # Create a socket to determine the local IP
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
+        s.connect(("10.255.255.255", 1))
         lan_ip = s.getsockname()[0]
         s.close()
         return lan_ip
     except Exception:
-        return None
+        pass
+    try:
+        hostname_ip = socket.gethostbyname(socket.gethostname())
+        if hostname_ip and not hostname_ip.startswith("127."):
+            return hostname_ip
+    except Exception:
+        pass
+    return None
 
 
 class QRCodeConnectView(TemplateView):
@@ -2855,10 +2878,12 @@ class QRCodeConnectView(TemplateView):
         
         # Get LAN IP for mobile access
         lan_ip = get_lan_ip()
+        port = get_server_port(self.request)
         ctx['lan_ip'] = lan_ip
+        ctx['server_port'] = port
         if lan_ip:
-            ctx['lan_login_url'] = f"http://{lan_ip}:8000/accounts/login/"
-            ctx['lan_kiosk_url'] = f"http://{lan_ip}:8000/parent-kiosk/"
+            ctx['lan_login_url'] = f"http://{lan_ip}:{port}/accounts/login/"
+            ctx['lan_kiosk_url'] = f"http://{lan_ip}:{port}/parent-kiosk/"
         
         # Generate QR code
         # Use LAN URL for mobile access
@@ -2878,6 +2903,9 @@ def qr_code_image(request):
     
     base_url = get_base_url(request)
     login_url = f"{base_url}/accounts/login/"
+    lan_ip = get_lan_ip()
+    if lan_ip:
+        login_url = f"http://{lan_ip}:{get_server_port(request)}/accounts/login/"
     
     qr = qrcode.QRCode(
         version=1,

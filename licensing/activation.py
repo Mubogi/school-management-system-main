@@ -6,10 +6,13 @@ import hashlib
 import hmac
 import base64
 import json
+import os
 import re
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass
+
+from core.edition import is_offline
 
 # License tiers and their features
 LICENSE_TIERS = {
@@ -33,6 +36,19 @@ LICENSE_TIERS = {
 
 # Demo key for testing (valid for 7 days, basic features)
 DEMO_KEY = "SMS-DEMO-2026-BASIC-XXXX"
+
+# ---------------------------------------------------------------------------
+# Signed license keys (offline edition)
+# ---------------------------------------------------------------------------
+# Resellers generate keys with `manage.py licensekey generate`. A key carries
+# the tier, an optional expiry and an optional machine-bound HWID, all protected
+# by an HMAC so it cannot be forged or edited with a text editor. Both the key
+# generator and the app must use the same signing secret; override the default
+# in production via the JDHUB_LICENSE_SECRET environment variable.
+LICENSE_SIGNING_SECRET = os.environ.get(
+    'JDHUB_LICENSE_SECRET', 'jdhub-license-signing-2026-change-me'
+)
+_SIGNED_KEY_RE = re.compile(r'^SMS-(BASIC|STANDARD|PREMIUM|DEMO)-([A-Za-z0-9+/=]+)-([A-F0-9]{16})$')
 
 @dataclass
 class LicenseInfo:
@@ -102,6 +118,110 @@ def _parse_license_key(key: str) -> Optional[Dict]:
         'id': parts[3],
     }
 
+def build_license_key(tier: str, duration_days: Optional[int] = None,
+                      hwid: Optional[str] = None, features: Optional[List[str]] = None,
+                      school_name: str = '') -> str:
+    """Build a signed license key for the given tier.
+
+    ``duration_days`` of ``None`` or ``0`` produces a perpetual key. When
+    ``hwid`` is supplied the key only activates on that exact machine.
+    """
+    from datetime import date
+    tier = (tier or '').strip().upper()
+    if tier not in ('BASIC', 'STANDARD', 'PREMIUM'):
+        raise ValueError(f"Unsupported tier: {tier}")
+
+    if features is None:
+        features = list(LICENSE_TIERS[tier]['features'])
+
+    payload = {
+        't': tier,
+        'f': features,
+        'e': None,
+        'h': (hwid or '').strip().upper() or None,
+        's': school_name or '',
+        'v': 1,
+    }
+    if duration_days:
+        expires = datetime.now() + timedelta(days=int(duration_days))
+        payload['e'] = expires.date().isoformat()
+
+    packed = base64.b64encode(
+        json.dumps(payload, separators=(',', ':')).encode()
+    ).decode()
+
+    sig = _generate_key_signature(packed, LICENSE_SIGNING_SECRET).upper()
+    return f"SMS-{tier}-{packed}-{sig}"
+
+
+def _validate_signed_key(key: str, hwid: str) -> Optional[Tuple[bool, str, LicenseInfo]]:
+    """Validate a signed key. Returns None if the key is not signed-key shaped."""
+    match = _SIGNED_KEY_RE.match(key or '')
+    if not match:
+        return None
+
+    tier, packed, sig = match.group(1), match.group(2), match.group(3)
+    expected = _generate_key_signature(packed, LICENSE_SIGNING_SECRET).upper()
+
+    if not hmac.compare_digest(sig, expected):
+        return False, "Invalid license key signature", LicenseInfo(
+            is_valid=False, tier='NONE', features=[], expires_at=None,
+            hwid_bound=False, message="Signature mismatch"
+        )
+
+    try:
+        payload = json.loads(base64.b64decode(packed.encode()).decode())
+    except Exception:
+        return False, "Corrupt license key", LicenseInfo(
+            is_valid=False, tier='NONE', features=[], expires_at=None,
+            hwid_bound=False, message="Unreadable key"
+        )
+
+    if payload.get('t') != tier or tier not in LICENSE_TIERS:
+        return False, "License tier does not match key", LicenseInfo(
+            is_valid=False, tier='NONE', features=[], expires_at=None,
+            hwid_bound=False, message="Tier mismatch"
+        )
+
+    expires_at = None
+    expiry = payload.get('e')
+    if expiry:
+        try:
+            expires_at = datetime.fromisoformat(f"{expiry}T23:59:59")
+        except ValueError:
+            return False, "Invalid expiry in license key", LicenseInfo(
+                is_valid=False, tier='NONE', features=[], expires_at=None,
+                hwid_bound=False, message="Bad expiry"
+            )
+        if expires_at < datetime.now():
+            return False, "This license key has expired", LicenseInfo(
+                is_valid=False, tier=tier, features=[], expires_at=expires_at,
+                hwid_bound=False, message="Expired"
+            )
+
+    bound_hwid = payload.get('h')
+    if bound_hwid and bound_hwid != (hwid or '').upper():
+        return False, (
+            "This license key is bound to a different machine. "
+            f"Ask your vendor for a key for {hwid}."
+        ), LicenseInfo(
+            is_valid=False, tier=tier, features=[], expires_at=expires_at,
+            hwid_bound=True, message="HWID mismatch"
+        )
+
+    features = payload.get('f') or list(LICENSE_TIERS[tier]['features'])
+    tier_name = LICENSE_TIERS[tier]['name']
+
+    return True, f"{tier_name} license activated", LicenseInfo(
+        is_valid=True,
+        tier=tier,
+        features=list(features),
+        expires_at=expires_at,
+        hwid_bound=bool(bound_hwid),
+        message=f"{tier_name} license",
+    )
+
+
 def _validate_license_key(key: str, hwid: str) -> Tuple[bool, str, LicenseInfo]:
     """
     Validate a license key against the HWID.
@@ -113,6 +233,33 @@ def _validate_license_key(key: str, hwid: str) -> Tuple[bool, str, LicenseInfo]:
             expires_at=None, hwid_bound=False, message="No key provided"
         )
     
+    key = key.strip()
+
+    # Signed keys (issued by the vendor's key generator) carry their own tier,
+    # expiry and HWID binding and are verified by signature. Their base64 payload
+    # is case-sensitive, so this check runs before any uppercasing.
+    signed = _validate_signed_key(key, hwid)
+    if signed is not None:
+        return signed
+
+    # The offline edition is sold to clients, so it accepts ONLY signed
+    # activation codes. The unsigned legacy format would let anyone type a
+    # guessed string and unlock the app, so it is rejected here. Allow it
+    # explicitly with JDHUB_ALLOW_LEGACY_KEYS=1 for a migrating install.
+    if is_offline() and os.environ.get('JDHUB_ALLOW_LEGACY_KEYS', '').strip() != '1':
+        legacy_upper = key.upper()
+        if legacy_upper != DEMO_KEY and _parse_license_key(legacy_upper):
+            return False, (
+                "This code is not a valid signed activation code. "
+                "Ask your vendor for the activation code for this school."
+            ), LicenseInfo(
+                is_valid=False, tier='NONE', features=[], expires_at=None,
+                hwid_bound=False, message="Unsigned key rejected"
+            )
+
+    # Legacy format parsing is case-insensitive.
+    key = key.upper()
+
     # Parse the key
     parsed = _parse_license_key(key)
     if not parsed:

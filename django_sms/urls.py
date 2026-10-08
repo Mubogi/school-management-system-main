@@ -14,3 +14,7 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+elif getattr(settings, 'IS_OFFLINE_EDITION', False):
+    # The packaged offline build runs with DEBUG off but must still serve
+    # user-uploaded media (student photos, uploads) from its local folder.
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

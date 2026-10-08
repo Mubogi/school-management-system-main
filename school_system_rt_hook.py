@@ -1,30 +1,26 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""
-Runtime hook for PyInstaller build.
-Sets up the environment so Django can find its settings, templates,
-and static files inside the frozen application bundle.
+"""PyInstaller runtime hook for the offline desktop build.
+
+``JDHUB_INSTANCE_DIR`` is the single writable folder that holds the bundled
+source *and* the runtime data (``db.sqlite3``, ``media/``, ``backups/``). The
+launcher (``main.py``) resolves it from the executable location and writes it
+back into the environment before Django is imported; this hook is a safety net
+so Django can always find the folder even if it is imported first.
 """
 import os
 import sys
 
+bundle_dir = getattr(sys, '_MEIPASS', None)
+exe_dir = os.path.dirname(sys.executable)
 
-def _setup_frozen_env():
-    """Configure Django environment for frozen (PyInstaller) execution."""
-    # _MEIPASS is the PyInstaller bundle root (temporary in onefile, real dir in onedir)
-    bundle_dir = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+os.environ.setdefault('JDHUB_EDITION', 'offline')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_sms.settings')
+os.environ.setdefault('JDHUB_INSTANCE_DIR', exe_dir)
+os.environ.setdefault('PYTHONUNBUFFERED', '1')
 
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_sms.settings')
-    os.environ.setdefault('PYTHONUNBUFFERED', '1')
-
-    # Tell Django where the project root lives so BASE_DIR resolves correctly.
-    # In a frozen app, BASE_DIR should point to the directory containing the exe
-    # (so db.sqlite3, backups/, media/ are writable next to the executable).
-    exe_dir = os.path.dirname(sys.executable)
-    os.environ.setdefault('JDHUB_BASE_DIR', exe_dir)
-
-    # Add bundle dir to sys.path so Django app modules are importable
-    if bundle_dir not in sys.path:
-        sys.path.insert(0, bundle_dir)
-
-
-_setup_frozen_env()
+# The bundled application packages (django_sms, core, ...) live in exe_dir in
+# an onedir build; make sure they are importable.
+if exe_dir not in sys.path:
+    sys.path.insert(0, exe_dir)
+if bundle_dir and bundle_dir not in sys.path:
+    sys.path.insert(0, bundle_dir)

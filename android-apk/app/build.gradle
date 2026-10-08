@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.jordandesignhub.school'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.jordandesignhub.school"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.1.0"
+    }
+
+    // Release signing is optional: drop a keystore.properties file at the
+    // project root to produce a signed release build; otherwise the APK is
+    // unsigned and Android will ask the user to allow the install.
+    def keystorePropsFile = rootProject.file("keystore.properties")
+    if (keystorePropsFile.exists()) {
+        def keystoreProps = new Properties()
+        keystorePropsFile.withInputStream { keystoreProps.load(it) }
+        signingConfigs {
+            release {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
+}

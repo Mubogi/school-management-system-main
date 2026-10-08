@@ -287,7 +287,7 @@
                        placeholder="SMS-PREMIUM-XXXXXXXX-XXXX" required
                        style="font-family: monospace; letter-spacing: 1px;">
                 <div class="form-text">
-                    Enter your license key in the format: SMS-TIER-DATA-SHORTID
+                    Paste the activation code supplied by your vendor.
                 </div>
             </div>
             
@@ -297,10 +297,27 @@
             </button>
         </form>
         
+        <div class="card mt-4" style="background: rgba(255,255,255,0.06); border-radius: 12px;">
+            <div class="card-body">
+                <h6 class="mb-2"><i class="bi bi-pc-display me-2"></i>This machine</h6>
+                <p class="mb-1 small text-muted">
+                    Send this Hardware ID to your vendor to receive a key bound to this PC:
+                </p>
+                <div class="d-flex align-items-center gap-2">
+                    <code id="hwidValue" class="flex-grow-1"
+                          style="word-break: break-all; font-size: 0.85rem;">{{ hwid }}</code>
+                    <button type="button" class="btn btn-sm btn-outline-light"
+                            onclick="navigator.clipboard.writeText(document.getElementById('hwidValue').innerText); this.innerText='Copied';">
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="text-center mt-4">
             <small class="text-muted">
                 <i class="bi bi-info-circle me-1"></i>
-                Demo key available: <code>SMS-DEMO-2026-BASIC-XXXX</code> (7 days trial)
+                Trial key: <code>SMS-DEMO-2026-BASIC-XXXX</code> (7 days). Works with no internet.
             </small>
         </div>
         {% else %}

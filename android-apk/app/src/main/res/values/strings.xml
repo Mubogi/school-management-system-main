@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JD Hub School</string>
+    <string name="setup_title">Connect to your school server</string>
+    <string name="setup_hint">Enter the address shown on the school computer, for example 192.168.1.5:8000</string>
+    <string name="connect">Connect</string>
+    <string name="scan_qr">Scan QR code</string>
+    <string name="scan_prompt">Point the camera at the QR code on the school computer</string>
+    <string name="connecting">Connecting...</string>
+    <string name="cannot_connect">Could not reach the school server. Check Wi-Fi and the address.</string>
+    <string name="offline">No connection to the school server</string>
+    <string name="retry">Retry</string>
+</resources>
