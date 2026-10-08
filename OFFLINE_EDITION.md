@@ -12,15 +12,40 @@ about building that package and selling/activating it.
 
 ## 1. What the client receives
 
+The downloads live on the repository's **Releases** page:
+
+<https://github.com/Mubogi/school-management-system-main/releases>
+
 | Item | Purpose |
 | --- | --- |
 | `JDHub_SchoolManagement_Offline_1.1.0_Setup.exe` | Windows installer (PC) |
 | `JDHubSchoolSystem-windows-portable.zip` | No-install portable copy |
-| `app-release.apk` | Android phone client |
-| Activation code | One signed key per client |
+| `JDHubSchool-client.apk` | Android phone client |
+| Activation code | One signed key per client (issued separately) |
 | This guide | Setup + activation steps |
 
 Nothing requires an internet connection after installation.
+
+### How a release is made
+
+The assets are built automatically by
+`.github/workflows/release.yml`. To cut a release:
+
+```bash
+git tag -a v1.1.0 -m "Offline edition 1.1.0"
+git push origin v1.1.0
+```
+
+Pushing a `v*` tag builds the Windows installer (PyInstaller + Inno Setup) and
+the Android APK on GitHub runners, then attaches them to the Release. You can
+also run the workflow manually (Actions → *Release offline edition* → Run
+workflow) to get the same files as build artifacts without publishing a
+Release.
+
+The APK produced by CI is **unsigned**, so Android will ask the client to allow
+installs from unknown sources. For a signed APK, add `keystore.properties`
+(see `android-apk/README.md`) and rebuild — the same file installs without the
+warning.
 
 ---
 
