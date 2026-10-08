@@ -5,18 +5,21 @@ from django.db import models
 from django.utils import timezone
 
 
-# Feature flags available for granular licensing
+# Feature flags available for granular licensing.
+# Codes match the lowercase feature words granted by the license tiers in
+# licensing/activation.py (e.g. 'parent_kiosk', 'finance_reports') so that a
+# feature enabled by a tier key is recognised by the kiosk/decorator checks.
 FEATURE_CHOICES = [
-    ('PHOTO_UPLOAD', 'Photo Upload'),
-    ('ID_GENERATOR', 'ID Card Generator'),
-    ('PARENT_KIOSK', 'Parent Kiosk Portal'),
-    ('PDF_PREVIEW', 'PDF Preview System'),
-    ('BATCH_PROMOTION', 'Batch Promotion'),
-    ('FINANCE_REPORTS', 'Finance Reports'),
-    ('SMS_REPORTS', 'SMS/Exam Reports'),
-    ('ATTENDANCE', 'Attendance Tracking'),
-    ('CLOUD_SYNC', 'Cloud Synchronization'),
-    ('ADVANCED_ANALYTICS', 'Advanced Analytics'),
+    ('photo_upload', 'Photo Upload'),
+    ('id_generator', 'ID Card Generator'),
+    ('parent_kiosk', 'Parent Kiosk Portal'),
+    ('pdf_preview', 'PDF Preview System'),
+    ('batch_promotion', 'Batch Promotion'),
+    ('finance_reports', 'Finance Reports'),
+    ('sms_reports', 'SMS/Exam Reports'),
+    ('attendance', 'Attendance Tracking'),
+    ('cloud_sync', 'Cloud Synchronization'),
+    ('advanced_analytics', 'Advanced Analytics'),
 ]
 
 # All supported features for the feature matrix

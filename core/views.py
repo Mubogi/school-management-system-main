@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import TemplateView, View
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.utils.decorators import method_decorator
@@ -2912,7 +2913,7 @@ def parent_kiosk_view(request):
     from licensing.activation import _get_enabled_features
     enabled_features = _get_enabled_features()
     
-    if 'PARENT_KIOSK' not in enabled_features:
+    if 'parent_kiosk' not in enabled_features:
         return render(request, 'core/kiosk/kiosk_disabled.html')
     
     # Check for existing session
@@ -2929,12 +2930,9 @@ def parent_kiosk_view(request):
                 school=school,
                 target_class=student.current_class
             )
-            total_fees = sum(f.amount for f in fee_structures)
-            
-            payments = FeePaymentLedger.objects.filter(
-                student=student,
-                payment_status='CONFIRMED'
-            )
+            total_fees = sum(f.total_fees_required for f in fee_structures)
+
+            payments = FeePaymentLedger.objects.filter(student=student)
             total_paid = sum(p.amount_paid for p in payments)
             balance = total_fees - total_paid
             
@@ -2944,12 +2942,9 @@ def parent_kiosk_view(request):
                 student=student
             ).order_by('-academic_year', '-term').first()
             
-            # Get school notices
-            from core.models import SchoolNotice
-            notices = SchoolNotice.objects.filter(
-                school=school,
-                is_active=True
-            ).order_by('-created_at')[:3]
+            # Latest school notices (the Notice model is school-wide)
+            from school.models import Notice
+            notices = Notice.objects.order_by('-created_at')[:3]
             
             context = {
                 'student': student,

@@ -158,5 +158,6 @@ urlpatterns = [
     # PARENT KIOSK PORTAL (PUBLIC)
     path('parent-kiosk/', views.parent_kiosk_view, name='parent_kiosk'),
     path('parent-kiosk/login/', views.parent_kiosk_login, name='parent_kiosk_login'),
+    path('parent-kiosk/logout/', views.parent_kiosk_logout, name='parent_kiosk_logout'),
     path('api/parent-student/', views.api_get_parent_student, name='api_parent_student'),
 ]

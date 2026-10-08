@@ -16,6 +16,9 @@ class LicenseCheckMiddleware:
     # Paths that don't require license check
     EXEMPT_PATHS = [
         '/activate/',
+        '/licensing/activate/',
+        '/licensing/activate-feature/',
+        '/licensing/matrix/activate/',
         '/accounts/login/',
         '/accounts/logout/',
         '/admin/',

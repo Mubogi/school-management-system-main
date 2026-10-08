@@ -119,7 +119,7 @@ def feature_required(*features, **kwargs):
         - redirect_to: URL to redirect to if feature not available (default: /activate/)
         - ajax_response: Return JSON error for AJAX requests (default: True)
     """
-    redirect_to = kwargs.get('redirect_to', '/activate/')
+    redirect_to = kwargs.get('redirect_to', '/licensing/activate/')
     ajax_response = kwargs.get('ajax_response', True)
     
     def decorator(view_func):

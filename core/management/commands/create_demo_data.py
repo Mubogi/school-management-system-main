@@ -14,20 +14,18 @@ class Command(BaseCommand):
     help = 'Create demo school and users for all roles'
 
     def handle(self, *args, **options):
-        # Create demo school
-        school, created = SchoolConfiguration.objects.get_or_create(
-            school_name='Demo Academy',
-            defaults={
-                'school_initials_prefix': 'DEMO',
-                'active_academic_year': '2026',
-                'active_term': 'T1',
-                'is_active': True,
-            }
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'✓ Created school: {school.school_name}'))
-        else:
-            self.stdout.write(f'School already exists: {school.school_name}')
+        # Reuse the single school record for this deployment rather than
+        # creating a second one: SchoolConfiguration.get_school() always
+        # resolves to the lowest-pk record, so a duplicate would leave every
+        # seeded student/user attached to a school the app never looks up.
+        school = SchoolConfiguration.get_school()
+        school.school_name = 'Demo Academy'
+        school.school_initials_prefix = 'DEMO'
+        school.active_academic_year = '2026'
+        school.active_term = 'T1'
+        school.is_active = True
+        school.save()
+        self.stdout.write(self.style.SUCCESS(f'✓ Using school: {school.school_name}'))
 
         # Define roles
         roles = [
@@ -128,7 +126,7 @@ class Command(BaseCommand):
                 FeeComponent.objects.create(fee_structure=fee_structure, name='Tuition', amount=(amount * Decimal('0.70')).quantize(Decimal('0.01')))
                 FeeComponent.objects.create(fee_structure=fee_structure, name='Lab & Exam', amount=(amount * Decimal('0.20')).quantize(Decimal('0.01')))
                 FeeComponent.objects.create(fee_structure=fee_structure, name='Library & Activities', amount=(amount * Decimal('0.10')).quantize(Decimal('0.01')))
-                self.stdout.write(self.style.SUCCESS(f'✓ Created fee structure: {target_class} - {term} {year} (Ushs {amount})')
+                self.stdout.write(self.style.SUCCESS(f'✓ Created fee structure: {target_class} - {term} {year} (Ushs {amount})'))
 
         student_profiles = [
             ('Alice', 'Njeri', 'Form 1A'),

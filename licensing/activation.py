@@ -528,3 +528,13 @@ def _log_license_action(action: str, details: str = '', user=None):
         details=details,
         user=user,
     )
+
+
+# Public aliases: licensing/templatetags/feature_tags.py imports these names
+# without the leading underscore. Without them the template-tag module fails to
+# import and every template that loads it (all base layouts) raises
+# TemplateSyntaxError.
+check_feature_access = _check_feature_access
+get_enabled_features = _get_enabled_features
+get_license_status = _get_license_status
+is_activated = _is_activated
