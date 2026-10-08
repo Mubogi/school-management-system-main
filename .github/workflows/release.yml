@@ -130,20 +130,29 @@ jobs:
           chmod +x build_apk.sh
           ./build_apk.sh
 
-      - name: Collect and verify APK
+      - name: Collect and verify APKs
         run: |
           mkdir -p release-assets
-          cp android-apk/app/build/outputs/apk/release/app-release.apk release-assets/JDHubSchoolOffline.apk
-          ls -la release-assets
+          OUT=android-apk/app/build/outputs/apk/release
+          ls -la "$OUT"
+          # Device-specific builds keep the download small (mobile-data friendly
+          # and less likely to be truncated). arm64 is for current phones,
+          # arm32 for older 32-bit devices; the universal APK is the fallback.
+          cp "$OUT/app-arm64-v8a-release.apk"   release-assets/JDHubSchoolOffline-arm64.apk
+          cp "$OUT/app-armeabi-v7a-release.apk" release-assets/JDHubSchoolOffline-arm32.apk
+          cp "$OUT/app-universal-release.apk"   release-assets/JDHubSchoolOffline.apk
           BT="$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)"
           APKSIGNER="$ANDROID_HOME/build-tools/$BT/apksigner"
-          "$APKSIGNER" verify --print-certs release-assets/JDHubSchoolOffline.apk || \
-            (echo "APK is NOT signed - clients would see 'error parsing package'" >&2 && exit 1)
+          for f in release-assets/*.apk; do
+            echo "== $f ($(stat -c%s "$f") bytes)"
+            "$APKSIGNER" verify -v "$f" | grep -E "Verified using v1|Verified using v2|Number of signers"
+            "$APKSIGNER" verify "$f" || (echo "$f is NOT signed" >&2 && exit 1)
+          done
 
       - name: Write checksums
         run: |
           cd release-assets
-          sha256sum JDHubSchoolOffline.apk > SHA256SUMS-apk.txt
+          sha256sum *.apk > SHA256SUMS-apk.txt
           cat SHA256SUMS-apk.txt
 
       - name: Upload build artifact
