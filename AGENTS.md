@@ -327,6 +327,17 @@ Key pieces:
   .ico, the Android launcher (legacy + adaptive, blue background) and the web/PWA
   icons. android-apk/make_icons.py delegates to it. Regenerate after changing
   images/company-logo.png.
+- mobile-app/ - STANDALONE Flutter offline edition (branch mobile-flutter).
+  Native app + local SQLite (sqflite): students, teachers, fees, native PDF
+  reports (pdf/printing) and on-device QR (qr_flutter). No embedded interpreter
+  and no server, so it cannot fail to boot. This REPLACED the Chaquopy/Django
+  APK, which installed but failed to start on Android 15. Built by
+  .github/workflows/mobile-release.yml on mobile-v* tags (needs
+  `permissions: contents: write`). ~11 MB per-ABI vs ~32 MB before.
+  Same applicationId as the old Chaquopy app, so clients MUST uninstall the old
+  app before installing this one (different signing key -> signature mismatch).
+- The desktop (PyInstaller) and web (Django) editions are UNCHANGED and remain
+  the source of truth for the shared Django code.
 - OFFLINE_EDITION.md - build/licensing/support guide.
 
 PDF strategy (unchanged, works offline): HTML->PDF tries Playwright/Chromium
