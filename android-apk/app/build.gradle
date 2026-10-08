@@ -11,8 +11,8 @@ android {
         applicationId "com.jordandesignhub.school"
         minSdk 24
         targetSdk 34
-        versionCode 6
-        versionName "1.2.4"
+        versionCode 7
+        versionName "1.2.5"
 
         ndk {
             // The embedded Python interpreter is native code. Real phones are
@@ -49,10 +49,8 @@ android {
                 storePassword keystoreProps['storePassword']
                 keyAlias keystoreProps['keyAlias']
                 keyPassword keystoreProps['keyPassword']
-                // Sign with both schemes: v2 alone is rejected by Android 6 and
-                // older ("problem parsing the package"), which is exactly the
-                // failure clients reported. v1 covers those devices.
-                enableV1Signing true
+                // minSdk is 24, so every installable device supports the v2
+                // scheme; the v1/JAR scheme is only needed below API 24.
                 enableV2Signing true
             }
         }
