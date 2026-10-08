@@ -1,0 +1,99 @@
+name: Release offline edition
+
+# Publishing a version tag (e.g. v1.1.0) builds the Windows installer and the
+# Android APK, then attaches them to a GitHub Release so clients can download
+# them from the Releases page. Manual runs (workflow_dispatch) build the same
+# assets and upload them as workflow artifacts without creating a Release.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-pc:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Django checks
+        run: python manage.py check
+
+      - name: Build executable, portable zip and installer
+        run: python build.py --clean --zip --installer
+
+      - name: Assemble release assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          Copy-Item "dist/JDHubSchoolSystem-windows-portable.zip" "release-assets/"
+          $setup = Get-ChildItem "installer/JDHub_SchoolManagement_Offline_*_Setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "Installer .exe not found in installer/" }
+          Copy-Item $setup.FullName "release-assets/"
+          Get-ChildItem "release-assets" | Format-Table Name, Length
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-pc
+          path: release-assets/*
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+
+  android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build release APK
+        run: |
+          cd android-apk
+          chmod +x build_apk.sh
+          # No gradlew is committed, so generate the wrapper with the runner's
+          # Gradle before invoking the build script.
+          gradle wrapper --gradle-version 8.7
+          ./build_apk.sh
+
+      - name: Collect APK
+        run: |
+          mkdir -p release-assets
+          cp "$(find android-apk -name 'app-release*.apk' | head -1)" release-assets/JDHubSchool-client.apk
+          ls -la release-assets
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: release-assets/*
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*

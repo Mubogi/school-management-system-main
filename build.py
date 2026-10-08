@@ -61,12 +61,29 @@ def make_installer():
     if not iss.exists():
         print('installer_setup.iss not found')
         return 1
-    for candidate in (
-        Path(os.environ.get('ProgramFiles(x86)', '')) / 'Inno Setup 6' / 'ISCC.exe',
-        Path(os.environ.get('ProgramFiles', '')) / 'Inno Setup 6' / 'ISCC.exe',
-    ):
-        if candidate.is_file():
-            return subprocess.run([str(candidate), str(iss)], cwd=str(BASE_DIR)).returncode
+
+    # ISCC.exe may be on PATH (CI installs it there) or in the usual Program
+    # Files locations; check all of them so the build works unattended.
+    found = shutil.which('ISCC.exe') or shutil.which('ISCC')
+    if not found:
+        for base in (
+            os.environ.get('ProgramFiles(x86)', ''),
+            os.environ.get('ProgramFiles', ''),
+            r'C:\ProgramData\chocolatey\bin',
+        ):
+            if not base:
+                continue
+            candidate = Path(base) / 'Inno Setup 6' / 'ISCC.exe'
+            if candidate.is_file():
+                found = str(candidate)
+                break
+            candidate = Path(base) / 'ISCC.exe'
+            if candidate.is_file():
+                found = str(candidate)
+                break
+
+    if found:
+        return subprocess.run([found, str(iss)], cwd=str(BASE_DIR)).returncode
     print('Inno Setup (ISCC.exe) not found; compile installer_setup.iss manually.')
     return 1
 
