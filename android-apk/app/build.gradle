@@ -47,6 +47,12 @@ android {
 }
 
 dependencies {
+    // Aligns the Kotlin stdlib that zxing pulls in (jdk7/jdk8 1.6.21) with the
+    // version androidx brings (1.8.22). Since Kotlin 1.8 the jdk7/jdk8 artifacts
+    // are empty shims of kotlin-stdlib, so without this the build fails with
+    // "Duplicate class kotlin.*" errors.
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
+
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
 }
