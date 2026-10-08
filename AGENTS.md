@@ -306,16 +306,23 @@ Key pieces:
   bundles the project into assets/jdhub; make_icons.py generates legacy +
   adaptive launcher icons. Release APKs MUST be signed (CI signs them).
   reportlab is unavailable on Android -> PDFs use the fpdf2 fallback.
-- Install failures ("There was a problem parsing the package"): the file on
-  GitHub has been verified with apksigner + zipalign (it is valid), so the error
-  is on the phone side. Causes: (1) a truncated download on a metered connection
-  - compare the file against the published SHA256SUMS-apk.txt; (2) an old Android
-  version. The app now targets minSdk 21 via Chaquopy 15.0.1 + AGP 8.2.2 + Python
-  3.10 (Chaquopy 16+/Python 3.11 require minSdk 24). Do NOT gate CI on the
-  v1/JAR signature: apksigner refuses to add it for minSdk >= 24, which only
-  fails the build and stops the Release assets from publishing. MainActivity sets
-  jdhub.bundledir and jdhub.datadir explicitly; startup errors are shown as text
-  on the status panel (scrollable) rather than a generic message.
+- Install failures ("There was a problem parsing the package"): on a modern
+  phone (confirmed on Android 15) this was caused by INSUFFICIENT FREE STORAGE -
+  Android reports it as a parse error when it cannot stage/extract the install.
+  Check free space first and free up ~200 MB. Other causes, in order: a truncated
+  download on metered data (compare against the published SHA256SUMS-apk.txt), a
+  still-installed broken entry under Settings > Apps, or - only on old phones -
+  Android < 5.0. The published APK has been verified with apksigner + zipalign,
+  so a full download installs. Do NOT gate CI on the v1/JAR signature: apksigner
+  refuses to add it for minSdk >= 24, which only fails the build and stops the
+  Release assets from publishing. MainActivity sets jdhub.bundledir and
+  jdhub.datadir explicitly; startup errors are shown as text on the status panel.
+  Per-ABI APKs (arm64/arm32/universal) keep the download ~32 MB instead of ~35 MB.
+- The old v1.1.0 release contains an UNSIGNED APK and cannot be edited or deleted
+  (the token gets 403 on release edits), so it stays on the Releases page - always
+  give clients the direct download URL of the newest tag, never the Releases list.
+- Toolchain: Chaquopy 15.0.1 + AGP 8.2.2 + Python 3.10, minSdk 21 (broad device
+  support, and it yields both v1+v2 signatures and a smaller APK).
 - Icons: tools/generate_brand_icons.py is the single source for the Windows
   .ico, the Android launcher (legacy + adaptive, blue background) and the web/PWA
   icons. android-apk/make_icons.py delegates to it. Regenerate after changing
