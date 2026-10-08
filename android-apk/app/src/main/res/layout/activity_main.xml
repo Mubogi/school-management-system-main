@@ -23,14 +23,21 @@
             android:layout_marginBottom="24dp"
             android:contentDescription="@string/app_name" />
 
-        <TextView
-            android:id="@+id/statusText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/starting"
-            android:textColor="#e6edf3"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:padding="32dp" />
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/starting"
+                android:textColor="#e6edf3"
+                android:textSize="14sp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:padding="24dp" />
+        </ScrollView>
     </LinearLayout>
 </FrameLayout>

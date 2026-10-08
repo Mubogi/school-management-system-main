@@ -76,8 +76,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Generate launcher icons
-        run: python -m pip install --quiet pillow && python android-apk/make_icons.py
+      - name: Generate brand icons
+        run: python -m pip install --quiet pillow && python tools/generate_brand_icons.py
 
       - name: Configure APK signing
         env:
@@ -127,8 +127,13 @@ jobs:
           APK="$(find android-apk -name 'app-release-unsigned.apk' -o -name 'app-release.apk' | head -1)"
           echo "Checking $APK"
           BT="$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)"
-          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK" || \
+          APKSIGNER="$ANDROID_HOME/build-tools/$BT/apksigner"
+          "$APKSIGNER" verify --print-certs "$APK" || \
             (echo "APK is NOT signed - clients would see 'error parsing package'" >&2 && exit 1)
+          # v2 alone is rejected by Android 6 and older, so require v1 as well.
+          "$APKSIGNER" verify -v "$APK" | tee /tmp/apksigner.txt
+          grep -q "Verified using v1 scheme.*true" /tmp/apksigner.txt || \
+            (echo "APK is missing the v1 signature - Android 6 and older will reject it" >&2 && exit 1)
 
       - name: Collect APK
         run: |

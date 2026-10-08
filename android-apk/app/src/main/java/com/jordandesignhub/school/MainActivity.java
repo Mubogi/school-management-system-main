@@ -123,6 +123,10 @@ public class MainActivity extends AppCompatActivity {
             try {
                 final File bundleDir = extractAssets();
                 System.setProperty("jdhub.bundledir", bundleDir.getAbsolutePath());
+                // Writable location for the SQLite database, media and backups.
+                // Setting it explicitly means the app never depends on the
+                // interpreter's environment to find a writable folder.
+                System.setProperty("jdhub.datadir", getFilesDir().getAbsolutePath());
 
                 Python py = Python.getInstance();
                 final PyObject app = py.getModule("jdhub_app");
@@ -131,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
                 if (port <= 0) {
                     final String err = app.callAttr("last_error").toString();
                     Log.e(TAG, "Backend failed: " + err);
-                    main.post(() -> showStatus(getString(R.string.start_error)));
+                    main.post(() -> showStatus(getString(R.string.start_error) + "\n\n" + err));
                     return;
                 }
 
@@ -139,7 +143,8 @@ public class MainActivity extends AppCompatActivity {
                 main.post(() -> webView.loadUrl(base + "/accounts/login/"));
             } catch (Throwable t) {
                 Log.e(TAG, "Startup crashed", t);
-                main.post(() -> showStatus(getString(R.string.start_error)));
+                final String err = Log.getStackTraceString(t);
+                main.post(() -> showStatus(getString(R.string.start_error) + "\n\n" + err));
             }
         }, "jdhub-backend").start();
     }

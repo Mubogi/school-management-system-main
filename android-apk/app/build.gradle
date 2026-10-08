@@ -11,13 +11,15 @@ android {
         applicationId "com.jordandesignhub.school"
         minSdk 24
         targetSdk 34
-        versionCode 3
-        versionName "1.2.1"
+        versionCode 4
+        versionName "1.2.2"
 
         ndk {
-            // The embedded Python interpreter is native code; build for phones
-            // (arm64/armeabi) and the emulator (x86_64).
-            abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+            // The embedded Python interpreter is native code. Real phones are
+            // arm64-v8a (current) or armeabi-v7a (older/cheaper); the x86_64
+            // ABI is only needed for emulators and costs ~14 MB, so it is left
+            // out to keep the download small.
+            abiFilters "arm64-v8a", "armeabi-v7a"
         }
         python {
             // Pure-Python packages are enough for the full app; reportlab is
@@ -47,6 +49,11 @@ android {
                 storePassword keystoreProps['storePassword']
                 keyAlias keystoreProps['keyAlias']
                 keyPassword keystoreProps['keyPassword']
+                // Sign with both schemes: v2 alone is rejected by Android 6 and
+                // older ("problem parsing the package"), which is exactly the
+                // failure clients reported. v1 covers those devices.
+                enableV1Signing true
+                enableV2Signing true
             }
         }
     }
