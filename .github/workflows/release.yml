@@ -146,6 +146,7 @@ jobs:
             --ks-key-alias "$JDHUB_KEY_ALIAS" \
             --ks-pass "pass:$JDHUB_STORE_PASS" \
             --key-pass "pass:$JDHUB_KEY_PASS" \
+            --min-sdk-version 23 \
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --out release-assets/JDHubSchoolOffline.apk \
