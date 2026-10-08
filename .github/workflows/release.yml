@@ -48,6 +48,14 @@ jobs:
           Copy-Item $setup.FullName "release-assets/"
           Get-ChildItem "release-assets" | Format-Table Name, Length
 
+      - name: Write checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem release-assets -File | Where-Object { $_.Name -notlike 'SHA256SUMS*' } | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$h  $($_.Name)"
+          } | Set-Content release-assets/SHA256SUMS-windows.txt
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -89,25 +97,28 @@ jobs:
           cd android-apk
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
-            cat > keystore.properties <<EOF
-          storeFile=release.keystore
-          storePassword=${ANDROID_STORE_PASSWORD}
-          keyAlias=${ANDROID_KEY_ALIAS}
-          keyPassword=${ANDROID_KEY_PASSWORD}
-          EOF
+            SP="$ANDROID_STORE_PASSWORD"; KA="$ANDROID_KEY_ALIAS"; KP="$ANDROID_KEY_PASSWORD"
           else
             echo "No signing secret configured - generating an ephemeral key."
             keytool -genkeypair -v -keystore release.keystore -alias jdhub \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass jdhub-offline -keypass jdhub-offline \
               -dname "CN=JD Hub School, O=Jordan Design Hub, C=UG"
-            cat > keystore.properties <<EOF
-          storeFile=release.keystore
-          storePassword=jdhub-offline
-          keyAlias=jdhub
-          keyPassword=jdhub-offline
-          EOF
+            SP="jdhub-offline"; KA="jdhub"; KP="jdhub-offline"
           fi
+          cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=${SP}
+          keyAlias=${KA}
+          keyPassword=${KP}
+          EOF
+          # Export for the explicit re-signing step below.
+          {
+            echo "JDHUB_KEYSTORE=$PWD/release.keystore"
+            echo "JDHUB_STORE_PASS=${SP}"
+            echo "JDHUB_KEY_ALIAS=${KA}"
+            echo "JDHUB_KEY_PASS=${KP}"
+          } >> "$GITHUB_ENV"
 
       - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -122,24 +133,42 @@ jobs:
           chmod +x build_apk.sh
           ./build_apk.sh
 
-      - name: Verify APK is signed
+      - name: Sign APK (v1 + v2 schemes)
         run: |
-          APK="$(find android-apk -name 'app-release-unsigned.apk' -o -name 'app-release.apk' | head -1)"
-          echo "Checking $APK"
+          mkdir -p release-assets
+          BT="$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)"
+          APKSIGNER="$ANDROID_HOME/build-tools/$BT/apksigner"
+          # Re-sign explicitly with both schemes: v2 alone is rejected by
+          # Android 6 and older ("problem parsing the package"), which is the
+          # failure clients reported.
+          "$APKSIGNER" sign \
+            --ks "$JDHUB_KEYSTORE" \
+            --ks-key-alias "$JDHUB_KEY_ALIAS" \
+            --ks-pass "pass:$JDHUB_STORE_PASS" \
+            --key-pass "pass:$JDHUB_KEY_PASS" \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --out release-assets/JDHubSchoolOffline.apk \
+            android-apk/app/build/outputs/apk/release/app-release.apk
+
+      - name: Verify APK is signed (v1 + v2)
+        run: |
+          APK=release-assets/JDHubSchoolOffline.apk
           BT="$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)"
           APKSIGNER="$ANDROID_HOME/build-tools/$BT/apksigner"
           "$APKSIGNER" verify --print-certs "$APK" || \
             (echo "APK is NOT signed - clients would see 'error parsing package'" >&2 && exit 1)
-          # v2 alone is rejected by Android 6 and older, so require v1 as well.
           "$APKSIGNER" verify -v "$APK" | tee /tmp/apksigner.txt
           grep -q "Verified using v1 scheme.*true" /tmp/apksigner.txt || \
             (echo "APK is missing the v1 signature - Android 6 and older will reject it" >&2 && exit 1)
+          grep -q "Verified using v2 scheme.*true" /tmp/apksigner.txt || \
+            (echo "APK is missing the v2 signature" >&2 && exit 1)
 
-      - name: Collect APK
+      - name: Write checksums
         run: |
-          mkdir -p release-assets
-          cp "$(find android-apk -name 'app-release.apk' | head -1)" release-assets/JDHubSchoolOffline.apk
-          ls -la release-assets
+          cd release-assets
+          sha256sum JDHubSchoolOffline.apk > SHA256SUMS-apk.txt
+          cat SHA256SUMS-apk.txt
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
