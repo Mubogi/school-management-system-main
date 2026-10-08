@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'com.chaquo.python'
 }
 
 android {
@@ -10,8 +11,27 @@ android {
         applicationId "com.jordandesignhub.school"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.1.0"
+        versionCode 2
+        versionName "1.2.0"
+
+        ndk {
+            // The embedded Python interpreter is native code; build for phones
+            // (arm64/armeabi) and the emulator (x86_64).
+            abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
+        }
+        python {
+            // Pure-Python packages are enough for the full app; reportlab is
+            // native and not available for Android, so PDFs use the bundled
+            // pure-Python fpdf2 fallback instead.
+            pip {
+                install "django==4.2.16"
+                install "whitenoise==6.7.0"
+                install "qrcode==7.4.2"
+                install "pypdf==4.3.1"
+                install "fpdf2==2.7.9"
+                install "pillow"  // QR PNG rendering + fpdf2 image support
+            }
+        }
     }
 
     // Release signing is optional: drop a keystore.properties file at the
@@ -45,6 +65,36 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 }
+
+chaquopy {
+    defaultConfig {
+        // Pin the Python version so the CI build machine and the APK agree.
+        version = "3.11"
+    }
+}
+
+// --- Bundle the Django project into the APK assets -------------------------
+// The Android edition runs the *same* Python source as the desktop edition.
+// Gradle copies the source tree plus templates/static/migrations into
+// src/main/assets/jdhub, which MainActivity extracts to files on first run.
+def appProjectRoot = rootProject.projectDir.parentFile
+def androidAssetsDir = file("$projectDir/src/main/assets/jdhub")
+def sourcePackages = ["django_sms", "core", "school", "licensing", "notifications", "utils"]
+
+tasks.register("copyAndroidSources", Sync) {
+    into androidAssetsDir
+    // Copy relative to the project root so package folders (core/, school/…)
+    // keep their names and imports keep working on the device. Templates and
+    // static files live inside these packages, so they come along too.
+    from(appProjectRoot) {
+        sourcePackages.each { pkg -> include "${pkg}/**" }
+        include "images/**"
+        exclude "**/__pycache__/**"
+        exclude "**/*.pyc"
+    }
+}
+
+tasks.named("preBuild") { dependsOn "copyAndroidSources" }
 
 dependencies {
     // Aligns the Kotlin stdlib that zxing pulls in (jdk7/jdk8 1.6.21) with the

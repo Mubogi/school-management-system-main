@@ -84,13 +84,16 @@ Type: filesandordirs; Name: "{app}\__pycache__"
 Type: files; Name: "{app}\app.log"
 
 [Code]
+// The app keeps its database, media and backups under the user's
+// %LOCALAPPDATA%\JDHubSchoolSystem folder (an installed copy under
+// Program Files is read-only for normal users). A per-user copy created on a
+// previous run may also exist beside the executable for portable installs.
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    // Writable folders the app uses at runtime.
-    ForceDirectories(ExpandConstant('{app}\media'));
-    ForceDirectories(ExpandConstant('{app}\backups'));
+    ForceDirectories(ExpandConstant('{localappdata}\JDHubSchoolSystem\media'));
+    ForceDirectories(ExpandConstant('{localappdata}\JDHubSchoolSystem\backups'));
   end;
 end;
 
@@ -101,9 +104,12 @@ begin
     if MsgBox('Keep your school data (database, media, backups)?',
               mbConfirmation, MB_YESNO) = IDNO then
     begin
+      // Data written next to the executable (portable installs).
       DelTree(ExpandConstant('{app}\db.sqlite3'), False, True, False);
       DelTree(ExpandConstant('{app}\media'), True, True, True);
       DelTree(ExpandConstant('{app}\backups'), True, True, True);
+      // Data written under %LOCALAPPDATA% (normal installed copies).
+      DelTree(ExpandConstant('{localappdata}\JDHubSchoolSystem'), True, True, True);
     end;
   end;
 end;

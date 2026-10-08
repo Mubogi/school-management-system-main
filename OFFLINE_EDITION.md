@@ -152,7 +152,9 @@ The installer:
 
 - copies the app to `C:\Program Files\JD Hub School Management System`
 - creates Start-menu and desktop shortcuts
-- creates the writable `media\` and `backups\` folders
+- stores the school data in `%LOCALAPPDATA%\JDHubSchoolSystem` (the install
+  folder under `Program Files` is read-only for normal users, so the database
+  cannot live there)
 - offers to keep or remove school data on uninstall
 
 `BUILD_FOR_WINDOWS.bat` runs the whole flow in one double-click.
@@ -165,11 +167,21 @@ The installer:
 3. Enter the activation code.
 4. Open **Connect a phone** to show the QR code.
 
+If the app ever fails to start it now shows a message box explaining why,
+instead of closing silently. The same details are written to `app.log` in the
+data folder (`%LOCALAPPDATA%\JDHubSchoolSystem`, or the app folder for a
+portable copy).
+
 ---
 
 ## 5. Building the Android APK
 
-Requirements: JDK 17 and the Android SDK.
+The Android edition is a **full app**: the phone runs the same Django
+application as the PC (via the Chaquopy Python runtime) and stores its own
+SQLite database on the device. No computer and no internet are needed, so a
+school can manage data directly on a phone.
+
+Requirements: JDK 17, the Android SDK, and Python 3.11 on the build machine.
 
 ```bash
 cd android-apk
@@ -178,21 +190,36 @@ cd android-apk
 
 Output: `android-apk/app/build/outputs/apk/release/`.
 
-For a signed release APK, add `android-apk/keystore.properties` (see
-`android-apk/README.md`) and rebuild. A signed APK installs without the
-"unknown apps" warning.
+A release APK **must be signed** or Android refuses to install it with the
+confusing "There was a problem parsing the package" error. The release workflow
+signs it automatically: add these repository secrets to use your own key, or
+the build generates a temporary key when they are absent.
 
-The phone app is a thin client: it holds **no** student data, so a lost phone
-cannot leak the register.
+| Secret | Meaning |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | your `.jks` keystore, base64-encoded |
+| `ANDROID_STORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | key alias |
+| `ANDROID_KEY_PASSWORD` | key password |
+
+For a local signed build, add `android-apk/keystore.properties` (see
+`android-apk/README.md`) and rebuild. The launcher icon, round icon and
+adaptive icon are generated from `images/company-logo.png` by
+`android-apk/make_icons.py` (the build runs it automatically).
+
+PDFs on the phone use a pure-Python engine (fpdf2) because ReportLab is not
+available for Android.
 
 ---
 
 ## 6. Connecting phones (QR)
 
+The Android app runs standalone, but you can also let extra phones use a
+computer's data (for example, teachers' phones on the same Wi-Fi).
+
 1. On the school computer open **Connect a phone**. It shows a QR code and the
    LAN address (`http://<lan-ip>:<port>/accounts/login/`).
-2. On the phone, in **JD Hub School**, tap **Scan QR code**, or type the
-   address.
+2. Open that address on the phone's browser (or in another copy of the app).
 3. The phone must be on the same Wi-Fi network or hotspot as the computer.
 
 The QR code always uses the real port the server is listening on, so it works
@@ -204,19 +231,23 @@ even if the port is not the default `8000`.
 
 Reports, receipts, broadsheets, lists and certificates are generated locally.
 The PDF engine tries, in order, any of: Playwright/Chromium, WeasyPrint,
-xhtml2pdf, or the built-in ReportLab fallback — so PDFs keep working even on a
-computer that has none of the optional libraries installed.
+xhtml2pdf, ReportLab, or a pure-Python fpdf2 fallback — so PDFs keep working
+even on a computer with none of the optional libraries installed, and on
+Android (which cannot use ReportLab).
 
 ---
 
 ## 8. Data, backups, and safety
 
-- All data lives next to the executable in one folder (`db.sqlite3`, `media/`,
-  `backups/`). Copy that folder to move or archive a school.
+- On Windows, all data lives in `%LOCALAPPDATA%\JDHubSchoolSystem`
+  (`db.sqlite3`, `media/`, `backups/`). Copy that folder to move or archive a
+  school. A portable copy keeps its data next to the executable instead.
+- On Android, data lives in the app's private storage (a `jdhub` folder); use
+  the in-app backup to move it.
 - The app takes an automatic backup on exit (last 5 kept) in `backups/`.
 - Only one copy of the app may run against a data folder at a time; the app
   refuses a second start to protect the database.
-- Do not delete `secret_key.txt` in the install folder; it keeps sessions valid
+- Do not delete `secret_key.txt` in the data folder; it keeps sessions valid
   across restarts.
 
 ---

@@ -71,7 +71,45 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Build release APK
+      - name: Set up Python for Chaquopy
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate launcher icons
+        run: python -m pip install --quiet pillow && python android-apk/make_icons.py
+
+      - name: Configure APK signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android-apk
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > release.keystore
+            cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=${ANDROID_STORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+          else
+            echo "No signing secret configured - generating an ephemeral key."
+            keytool -genkeypair -v -keystore release.keystore -alias jdhub \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass jdhub-offline -keypass jdhub-offline \
+              -dname "CN=JD Hub School, O=Jordan Design Hub, C=UG"
+            cat > keystore.properties <<EOF
+          storeFile=release.keystore
+          storePassword=jdhub-offline
+          keyAlias=jdhub
+          keyPassword=jdhub-offline
+          EOF
+          fi
+
+      - name: Build signed release APK
         run: |
           cd android-apk
           chmod +x build_apk.sh
@@ -80,10 +118,18 @@ jobs:
           gradle wrapper --gradle-version 8.7
           ./build_apk.sh
 
+      - name: Verify APK is signed
+        run: |
+          APK="$(find android-apk -name 'app-release-unsigned.apk' -o -name 'app-release.apk' | head -1)"
+          echo "Checking $APK"
+          BT="$(ls $ANDROID_HOME/build-tools | sort -V | tail -1)"
+          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK" || \
+            (echo "APK is NOT signed - clients would see 'error parsing package'" >&2 && exit 1)
+
       - name: Collect APK
         run: |
           mkdir -p release-assets
-          cp "$(find android-apk -name 'app-release*.apk' | head -1)" release-assets/JDHubSchool-client.apk
+          cp "$(find android-apk -name 'app-release.apk' | head -1)" release-assets/JDHubSchoolOffline.apk
           ls -la release-assets
 
       - name: Upload build artifact

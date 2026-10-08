@@ -287,19 +287,27 @@ Key pieces:
   JDHUB_ALLOW_LEGACY_KEYS=1.
 - licensing/management/commands/licensekey.py - generate / apply CLI.
 - main.py - offline launcher: file lock, migrate, seed superuser, LAN bind,
-  backup-on-exit, rotating log.
+  backup-on-exit, rotating log. Writable data goes to %LOCALAPPDATA%\JDHubSchoolSystem
+  when the folder next to the exe is read-only (installed under Program Files);
+  a portable copy keeps data beside the exe. Startup failures show a message box
+  and are written to app.log instead of exiting silently.
 - QR: qr_code_image() and the connect page use get_lan_ip() and
   get_server_port(request) so the code encodes the real
   http://<lan-ip>:<port>/accounts/login/.
-- django_sms/settings.py searches sys._MEIPASS (BUNDLE_DIR) for bundled
-  templates/static so the PyInstaller onedir build resolves assets; writable
-  data (db.sqlite3, media/, secret_key.txt, staticfiles/) lives in DATA_DIR
-  next to the executable.
+- django_sms/settings.py searches sys._MEIPASS (BUNDLE_DIR, overridable via
+  JDHUB_BUNDLE_DIR for Android) for bundled templates/static so the PyInstaller
+  onedir build resolves assets; writable data (db.sqlite3, media/,
+  secret_key.txt, staticfiles/) lives in DATA_DIR next to the executable.
 - Packaging: school_system.spec, build.py, BUILD_FOR_WINDOWS.bat,
   installer_setup.iss, images/icon.ico, version_info.txt.
-- android-apk/ - thin WebView client (no student data on the phone) that
-  connects over LAN by QR scan or manual address. build_apk.sh builds it.
+- android-apk/ - FULL offline app: Chaquopy runs the whole Django project on the
+  phone (android-apk/app/src/main/python/jdhub_app.py serves it on 127.0.0.1),
+  WebView shows it, data lives in app-private storage. Gradle copyAndroidSources
+  bundles the project into assets/jdhub; make_icons.py generates legacy +
+  adaptive launcher icons. Release APKs MUST be signed (CI signs them).
+  reportlab is unavailable on Android -> PDFs use the fpdf2 fallback.
 - OFFLINE_EDITION.md - build/licensing/support guide.
 
 PDF strategy (unchanged, works offline): HTML->PDF tries Playwright/Chromium
--> WeasyPrint -> xhtml2pdf -> ReportLab fallback (render_pdf_response).
+-> WeasyPrint -> xhtml2pdf -> ReportLab -> fpdf2 (pure Python, e.g. Android)
+fallback in render_pdf_response.

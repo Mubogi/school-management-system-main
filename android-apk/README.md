@@ -1,39 +1,38 @@
-# JD Hub School - Android client APK
+# JD Hub School - Android app (APK)
 
-A small offline Android app that lets phones connect to a school's
-**JD Hub School Management System** desktop server over the local Wi-Fi or a
-phone hotspot. No internet connection is used.
+A **full offline** Android app for the **JD Hub School Management System**.
 
-The app is intentionally a thin client: it keeps **no** student data on the
-phone, so a lost phone cannot leak the school register.
+The phone runs the entire Django application itself (using the Chaquopy Python
+runtime) and stores its own SQLite database in the app's private storage. No
+computer, no server and no internet are needed, so a school can enrol students,
+enter marks, print reports and generate PDFs directly on a phone. The app also
+shows a QR code so teachers' phones can connect to a computer's copy over the
+local Wi-Fi when preferred.
 
 ## How it works
 
-1. On the school computer, open **Connect a phone** (QR page) in the app.
-2. On the phone, open this app and either:
-   - tap **Scan QR code** and scan the code on the school screen, or
-   - type the address shown (for example `192.168.1.5:8000`).
-3. The phone connects to the school server and shows the normal login page.
-   The address is remembered for next time.
-
-Phones must be on the **same Wi-Fi network or hotspot** as the school computer.
+1. Install and open the app. It unpacks its bundled copy of the project and
+   starts the school system on the device (a few seconds on first run).
+2. Sign in with the seeded administrator, then change the password.
+3. Enter the activation code on the licensing page.
+4. Use the app exactly like the desktop edition. Reports and receipts are PDFs,
+   saved to the Downloads folder and opened in the phone's PDF viewer.
 
 ## Build
 
-Install JDK 17 and the Android SDK, then:
+Install JDK 17, the Android SDK and Python 3.11, then:
 
 ```bash
+python android-apk/make_icons.py      # launcher icons from images/company-logo.png
 cd android-apk
 ./build_apk.sh
 ```
 
-The unsigned APK is written to
-`app/build/outputs/apk/release/app-release-unsigned.apk` (and a debug APK to
-`.../debug/`).
+The APK is written to `app/build/outputs/apk/release/`.
 
-### Signing a release build
-
-Create `keystore.properties` in `android-apk/`:
+**A release APK must be signed**, otherwise Android shows "There was a problem
+parsing the package" and refuses to install it. The CI release workflow signs it
+for you. For a local signed build, create `android-apk/keystore.properties`:
 
 ```properties
 storeFile=/absolute/path/school-release.jks
@@ -49,17 +48,17 @@ keytool -genkeypair -v -keystore school-release.jks -keyalg RSA \
   -keysize 2048 -validity 10000 -alias school
 ```
 
-Then re-run `./build_apk.sh`. A signed APK installs without the
-"allow unknown apps" warning.
+Then re-run `./build_apk.sh`.
 
 ## Install on a phone
 
 - Copy the APK to the phone (USB, Bluetooth, or local file share) and open it.
 - Allow installation from unknown sources when prompted.
-- On first launch, scan the QR code from the school computer.
+- On first launch the app prepares its own database and opens the login page.
 
 ## Notes
 
-- Cleartext HTTP to private addresses is enabled on purpose: the school server
-  has no TLS certificate and traffic never leaves the local network.
+- Cleartext HTTP is enabled on purpose: the app serves itself on `127.0.0.1`
+  and may also connect to a computer on the local network.
 - `minSdk 24` (Android 7.0) and above.
+- ReportLab cannot run on Android, so PDFs use a pure-Python engine (fpdf2).

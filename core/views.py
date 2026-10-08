@@ -16,17 +16,35 @@ from django.db.models import Q
 from django.utils import timezone
 from html import unescape
 from io import BytesIO
-from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen import canvas
-from pypdf import PdfReader, PdfWriter
 import re
 import base64
 import mimetypes
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Image, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import mm
+
+# ReportLab (native) and pypdf are optional: the Android build runs pure Python
+# only, so these imports must not break module loading there. Every use below is
+# guarded or caught, and the PDF chain falls back to a pure-Python renderer.
+try:
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Image, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+except Exception:  # pragma: no cover - platform dependent
+    ImageReader = canvas = A4 = None
+    SimpleDocTemplate = Paragraph = Table = TableStyle = Image = Spacer = None
+    getSampleStyleSheet = ParagraphStyle = colors = mm = None
+
+try:
+    from pypdf import PdfReader, PdfWriter
+except Exception:  # pragma: no cover - platform dependent
+    PdfReader = PdfWriter = None
+
+try:
+    from fpdf import FPDF  # pure-Python PDF writer (used on Android)
+except Exception:
+    FPDF = None
 from urllib.parse import urlparse, unquote
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -227,6 +245,32 @@ def create_watermark_bytes(school, width, height):
 def apply_pdf_watermark(pdf_bytes, school):
     # Watermarking has been disabled per user request.
     return pdf_bytes
+
+
+def _html_to_text_lines(html):
+    """Strip markup down to readable text lines (shared by the fallback renderers)."""
+    text = re.sub(r'(?is)<head.*?>.*?</head>', '', html)
+    text = re.sub(r'(?is)<style.*?>.*?</style>', '', text)
+    text = re.sub(r'(?is)<!--.*?-->', '', text)
+    text = re.sub(r'(?is)<script.*?>.*?</script>', '', text)
+    text = re.sub(r'(?i)</p>|</div>|</h[1-6]>|<br\s*/?>', '\n', text)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = unescape(text)
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def fpdf_pdf_from_html(html):
+    """Pure-Python fallback for platforms without ReportLab (e.g. Android)."""
+    if FPDF is None:
+        raise RuntimeError('fpdf2 is not installed')
+    pdf = FPDF(format='A4')
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font('Helvetica', size=10)
+    for line in _html_to_text_lines(html):
+        pdf.multi_cell(0, 6, line, new_x="LMARGIN", new_y="NEXT")
+    out = pdf.output()
+    return bytes(out)
 
 
 def reportlab_pdf_from_html(html):
@@ -787,9 +831,14 @@ def render_pdf_response(html, filename, school=None):
             pdf_bytes = reportlab_pdf_from_html(html)
         except Exception:
             pdf_bytes = None
+    if pdf_bytes is None:
+        try:
+            pdf_bytes = fpdf_pdf_from_html(html)
+        except Exception:
+            pdf_bytes = None
     if not pdf_bytes:
         return HttpResponse(
-            'PDF generation failed. Install Playwright/Chromium, ReportLab, WeasyPrint (GTK on Windows), or xhtml2pdf.',
+            'PDF generation failed. Install ReportLab, WeasyPrint, xhtml2pdf or fpdf2.',
             status=500,
         )
     if school is not None:

@@ -19,7 +19,12 @@ SOURCE_ROOT = Path(__file__).resolve().parent.parent
 # In a PyInstaller onedir bundle the collected read-only assets live in the
 # ``_internal`` folder (sys._MEIPASS), while writable data lives next to the
 # executable. Both are searched so templates/static resolve in every layout.
-BUNDLE_DIR = Path(getattr(sys, '_MEIPASS', SOURCE_ROOT))
+# The Android wrapper points JDHUB_BUNDLE_DIR at its extracted asset tree.
+_BUNDLE_DIR_ENV = os.environ.get('JDHUB_BUNDLE_DIR', '').strip()
+if _BUNDLE_DIR_ENV:
+    BUNDLE_DIR = Path(_BUNDLE_DIR_ENV).resolve()
+else:
+    BUNDLE_DIR = Path(getattr(sys, '_MEIPASS', SOURCE_ROOT))
 
 if _INSTANCE_DIR_ENV:
     # Portable/frozen builds keep every writable file (source code, templates,

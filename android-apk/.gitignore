@@ -1,0 +1,7 @@
+src/main/assets/jdhub/
+.gradle/
+build/
+local.properties
+keystore.properties
+*.keystore
+*.jks

@@ -50,13 +50,48 @@ _INSTANCE_LOCK = None
 
 
 def _instance_dir() -> Path:
-    """Directory that holds the writable data (also the frozen bundle)."""
+    """Directory that holds the writable runtime data.
+
+    A program installed under ``C:\\Program Files`` cannot write next to its
+    executable (standard users are denied there), which used to make the app
+    exit silently on first launch. So when the folder beside the executable is
+    not writable we fall back to a per-user location
+    (``%LOCALAPPDATA%\\JDHubSchoolSystem``). Portable copies run from a
+    writable folder still keep their data beside the executable.
+    """
     override = os.environ.get('JDHUB_INSTANCE_DIR', '').strip()
     if override:
         return Path(override).resolve()
+
     if getattr(sys, 'frozen', False):
-        return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent
+        candidate = Path(sys.executable).resolve().parent
+    else:
+        candidate = Path(__file__).resolve().parent
+
+    if _is_writable(candidate):
+        return candidate
+    return _user_data_dir()
+
+
+def _is_writable(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / '.write_test'
+        probe.write_text('ok', encoding='utf-8')
+        probe.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def _user_data_dir() -> Path:
+    base = os.environ.get('LOCALAPPDATA') or os.environ.get('APPDATA')
+    if base:
+        target = Path(base) / 'JDHubSchoolSystem'
+    else:
+        target = Path.home() / '.jdhub-school'
+    target.mkdir(parents=True, exist_ok=True)
+    return target
 
 
 # ---------------------------------------------------------------------------
@@ -151,19 +186,19 @@ def setup_file_logging(instance: Path):
 
 
 def ensure_database():
-    """Run migrations and seed the first superuser on a fresh install."""
-    try:
-        import django
-        django.setup()
-        from django.core.management import call_command
-        call_command('migrate', interactive=False, verbosity=0)
-        from core.startup import seed_superuser_if_empty
-        created = seed_superuser_if_empty()
-        logger.info("Database ready")
-        return created
-    except Exception as exc:
-        logger.error(f"Database preparation failed: {exc}")
-        return None
+    """Run migrations and seed the first superuser on a fresh install.
+
+    Raises on failure so the caller can surface it; a half-prepared database
+    must not start a server nobody can log in to.
+    """
+    import django
+    django.setup()
+    from django.core.management import call_command
+    call_command('migrate', interactive=False, verbosity=0)
+    from core.startup import seed_superuser_if_empty
+    created = seed_superuser_if_empty()
+    logger.info("Database ready")
+    return created
 
 
 def _write_state(port: int, instance: Path):
@@ -219,6 +254,44 @@ def start_django_server(host: str, port: int):
         httpd.server_close()
 
 
+def _show_fatal(message: str):
+    """Make a startup failure visible: a windowed build has no console, so a
+    silent exit is what the user would otherwise see."""
+    logger.error(message)
+    try:
+        import tkinter
+        from tkinter import messagebox
+        root = tkinter.Tk()
+        root.withdraw()
+        messagebox.showerror(APP_NAME, message)
+        root.destroy()
+    except Exception:
+        pass
+
+
+def _setup_crash_reporting(instance: Path):
+    def _hook(exc_type, exc, tb):
+        import traceback
+        text = ''.join(traceback.format_exception(exc_type, exc, tb))
+        logger.error("Unhandled error:\n%s", text)
+        _show_fatal(f"The application hit an unexpected error.\n\n{exc}\n\n"
+                    f"Details were written to:\n{instance / 'app.log'}")
+
+    sys.excepthook = _hook
+
+
+def _set_windows_app_id():
+    """Group the taskbar button under our own icon rather than 'python'."""
+    if os.name != 'nt':
+        return
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            'JordanDesignHub.JDHubSchoolSystem')
+    except Exception:
+        pass
+
+
 def get_lan_ip() -> str:
     """Local IP for phone access; no external network required."""
     try:
@@ -229,6 +302,21 @@ def get_lan_ip() -> str:
         return ip
     except Exception:
         return '127.0.0.1'
+
+
+def _wait_for_server(host: str, port: int, timeout: float = 15.0) -> bool:
+    """Poll the port until the app answers or the timeout elapses."""
+    import urllib.request
+    deadline = time.time() + timeout
+    url = f'http://{host}:{port}/accounts/login/'
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=1.5) as r:
+                if r.status < 500:
+                    return True
+        except Exception:
+            time.sleep(0.4)
+    return False
 
 
 def open_browser(url: str, delay: float = 2.5):
@@ -271,16 +359,28 @@ def main():
 
     instance = prepare_instance()
     setup_file_logging(instance)
+    _setup_crash_reporting(instance)
+    _set_windows_app_id()
 
     if not acquire_single_instance_lock(instance):
         if _port_is_our_app('127.0.0.1', args.port):
             logger.warning("App already running - opening the existing instance.")
             webbrowser.open(f'http://127.0.0.1:{args.port}')
             return 0
-        logger.error(f"Port {args.port} is already in use by another program.")
+        _show_fatal(
+            f"Port {args.port} is already in use by another program.\n\n"
+            f"Close the other program, or start this one on a different port:\n"
+            f"    JDHubSchoolSystem.exe --port 8010")
         return 1
 
-    seeded_user = ensure_database()
+    try:
+        seeded_user = ensure_database()
+    except Exception as exc:
+        _show_fatal(
+            f"Could not prepare the database.\n\n{exc}\n\n"
+            f"Log file: {instance / 'app.log'}")
+        return 1
+
     _write_state(args.port, instance)
     print_banner(instance, args.port, seeded_user)
 
@@ -293,7 +393,16 @@ def main():
         target=start_django_server, args=(args.host, args.port), daemon=True
     )
     server_thread.start()
-    time.sleep(1.2)
+
+    # Wait for the server to accept connections; if it never does, show why
+    # instead of opening a window on a dead port.
+    if not _wait_for_server('127.0.0.1', args.port, timeout=15):
+        _show_fatal(
+            f"The web server did not start on port {args.port}.\n\n"
+            f"Another program may be using the port. Try:\n"
+            f"    JDHubSchoolSystem.exe --port 8010\n\n"
+            f"Log file: {instance / 'app.log'}")
+        return 1
 
     if args.no_window:
         try:
@@ -320,7 +429,7 @@ def main():
             min_size=(900, 600),
             resizable=True,
         )
-        webview.start()
+        webview.start()  # blocks until the window is closed
         return 0
     except ImportError:
         logger.warning("pywebview not available - falling back to the browser.")
